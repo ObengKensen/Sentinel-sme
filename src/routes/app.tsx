@@ -10,16 +10,16 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-const titles: Record<string, { short: string; full: string }> = {
-  "/app/dashboard": { short: "Dashboard", full: "Dashboard" },
-  "/app/financial": { short: "Financial", full: "Financial Monitoring" },
-  "/app/cybersecurity": { short: "Cybersecurity", full: "Cybersecurity Monitoring" },
-  "/app/compliance": { short: "Compliance", full: "Compliance Monitoring" },
-  "/app/operational": { short: "Operational", full: "Operational Monitoring" },
-  "/app/alerts": { short: "Alerts", full: "Alerts Center" },
-  "/app/reports": { short: "Reports", full: "Reports" },
-  "/app/history": { short: "Risk History", full: "Risk History" },
-  "/app/profile": { short: "Profile", full: "Profile" },
+const titles: Record<string, string> = {
+  "/app/dashboard": "Dashboard",
+  "/app/financial": "Financial Monitoring",
+  "/app/cybersecurity": "Cybersecurity Monitoring",
+  "/app/compliance": "Compliance Monitoring",
+  "/app/operational": "Operational Monitoring",
+  "/app/alerts": "Alerts Center",
+  "/app/reports": "Reports",
+  "/app/history": "Risk History",
+  "/app/profile": "Profile",
 };
 
 function AppLayout() {
@@ -58,9 +58,8 @@ function AppLayout() {
         <header className="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b bg-background px-3 py-2 shadow-md sm:px-4 print:hidden">
           <SidebarTrigger className="shrink-0" />
           <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
-          <h1 className="min-w-0 flex-1 truncate text-base font-semibold leading-tight tracking-tight sm:text-xl lg:text-3xl">
-            <span className="sm:hidden">{titles[pathname]?.short ?? "Risk Sentinel"}</span>
-            <span className="hidden sm:inline">{titles[pathname]?.full ?? "Risk Sentinel"}</span>
+          <h1 className="min-w-0 flex-1 text-sm font-semibold leading-tight tracking-tight sm:truncate sm:text-xl lg:text-3xl">
+            {titles[pathname] ?? "Risk Sentinel"}
           </h1>
           <Link
             to="/app/profile"

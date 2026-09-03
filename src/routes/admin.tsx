@@ -62,9 +62,8 @@ function AdminLayout() {
         <header className="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b bg-background px-3 py-2 sm:px-4 print:hidden">
           <SidebarTrigger className="shrink-0" />
           <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
-          <h1 className="min-w-0 flex-1 truncate text-base font-semibold leading-tight tracking-tight sm:text-xl lg:text-3xl">
-            <span className="sm:hidden">{titles[pathname]?.short ?? "Admin"}</span>
-            <span className="hidden sm:inline">{titles[pathname]?.full ?? "Admin"}</span>
+          <h1 className="min-w-0 flex-1 text-sm font-semibold leading-tight tracking-tight sm:truncate sm:text-xl lg:text-3xl">
+            {titles[pathname]?.full ?? "Admin"}
           </h1>
           <Link
             to="/admin/profile"
