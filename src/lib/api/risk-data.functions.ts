@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { isDatabaseConfigured, query, withTransaction } from "../db.server";
+import { fileListUsers, fileUpdateUser } from "../local-account-store.server";
+import {
+  fileLoadAllRiskStates,
+  fileLoadRiskState,
+  fileSaveRiskState,
+} from "../local-risk-store.server";
 
 const severitySchema = z.enum(["low", "medium", "high"]);
 const categorySchema = z.enum(["financial", "cybersecurity", "compliance", "operational"]);
@@ -234,7 +240,24 @@ async function readBusinessProfile(userId: string) {
 export const loadRiskStateFn = createServerFn({ method: "POST" })
   .validator(z.object({ userId: z.string().uuid() }))
   .handler(async ({ data }) => {
-    if (!isDatabaseConfigured()) return { state: null as PersistedRiskState | null };
+    if (!isDatabaseConfigured()) {
+      const stored = await fileLoadRiskState(data.userId);
+      if (stored) return { state: stored };
+      const user = await fileListUsers().then((users) => users.find((u) => u.id === data.userId));
+      if (user?.profile) {
+        return {
+          state: {
+            profile: { ...user.profile, email: user.email },
+            financial: [],
+            cyber: [],
+            compliance: [],
+            operational: [],
+            alerts: [],
+          },
+        };
+      }
+      return { state: null as PersistedRiskState | null };
+    }
 
     const row = await readBusinessProfile(data.userId);
     if (!row) return { state: null as PersistedRiskState | null };
@@ -252,7 +275,22 @@ export const loadRiskStateFn = createServerFn({ method: "POST" })
   });
 
 export const loadAllSmeRiskStatesFn = createServerFn({ method: "GET" }).handler(async () => {
-  if (!isDatabaseConfigured()) return { states: {} as Record<string, PersistedRiskState> };
+  if (!isDatabaseConfigured()) {
+    const states = await fileLoadAllRiskStates();
+    const users = await fileListUsers();
+    for (const user of users) {
+      if (user.role !== "SME_OWNER" || states[user.id] || !user.profile) continue;
+      states[user.id] = {
+        profile: { ...user.profile, email: user.email },
+        financial: [],
+        cyber: [],
+        compliance: [],
+        operational: [],
+        alerts: [],
+      };
+    }
+    return { states };
+  }
 
   const businesses = await query<{
     user_id: string;
@@ -293,7 +331,17 @@ export const saveRiskStateFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured.", state: null };
+      const saved = await fileSaveRiskState(data.userId, data.state);
+      await fileUpdateUser(data.userId, {
+        profile: {
+          businessName: data.state.profile.businessName,
+          ownerName: data.state.profile.ownerName,
+          phone: data.state.profile.phone,
+          businessType: data.state.profile.businessType,
+          employees: data.state.profile.employees,
+        },
+      }).catch(() => undefined);
+      return { ok: true as const, state: saved };
     }
 
     const businessId = await getBusinessId(data.userId);

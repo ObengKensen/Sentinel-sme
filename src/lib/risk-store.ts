@@ -141,6 +141,20 @@ function loadUserState(userId: string, fallback: State): State {
   return fallback;
 }
 
+/** Seed a local profile mirror so admin dashboards can show SMEs created on other devices. */
+export function mirrorRemoteAccountProfile(userId: string, profile: Profile) {
+  const existing = loadStateForUser(userId);
+  if (!existing) {
+    writeLocalState(userId, emptyState(profile));
+    return;
+  }
+  if (existing.profile.businessName.trim()) return;
+  writeLocalState(userId, {
+    ...existing,
+    profile: { ...existing.profile, ...profile, email: profile.email || existing.profile.email },
+  });
+}
+
 export function loadStateForUser(userId: string): State | null {
   if (typeof window === "undefined") return null;
   try {

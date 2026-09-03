@@ -5,6 +5,15 @@ import { signAuthToken } from "../auth/jwt.server";
 import { hashPasswordServer, verifyPasswordServer } from "../auth/password.server";
 import type { UserRole } from "../auth/jwt.shared";
 import { isDatabaseConfigured, query, withTransaction } from "../db.server";
+import {
+  ensureFileAccountStore,
+  fileCreateUser,
+  fileFindUserByEmail,
+  fileFindUserById,
+  fileListUsers,
+  fileUpdateUser,
+  type FileUser,
+} from "../local-account-store.server";
 
 export const EMAIL_ALREADY_EXISTS_ERROR =
   "An account with this email already exists. Please sign in instead.";
@@ -33,6 +42,29 @@ type DbAccountRow = DbUser & {
   employees: number | null;
 };
 
+function profileFromFileUser(user: FileUser) {
+  if (!user.profile) return null;
+  return {
+    businessName: user.profile.businessName,
+    ownerName: user.profile.ownerName,
+    email: normalizeEmail(user.email),
+    phone: user.profile.phone,
+    businessType: user.profile.businessType,
+    employees: user.profile.employees,
+  };
+}
+
+async function issueFileSession(user: FileUser) {
+  const session = await issueSession({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    created_at: user.createdAt,
+  });
+  return { ...session, profile: profileFromFileUser(user) };
+}
+
 async function issueSession(user: Pick<DbUser, "id" | "email" | "role" | "status" | "created_at">) {
   const token = await signAuthToken({
     userId: user.id,
@@ -51,18 +83,37 @@ async function issueSession(user: Pick<DbUser, "id" | "email" | "role" | "status
 }
 
 export const getAuthBackendStatusFn = createServerFn({ method: "GET" }).handler(async () => {
-  if (!isDatabaseConfigured()) return { available: false as const };
+  if (isDatabaseConfigured()) {
+    try {
+      await query("SELECT 1");
+      return { available: true as const, mode: "postgres" as const };
+    } catch (error) {
+      console.error("[auth] database unavailable:", error);
+      return { available: false as const, mode: "postgres" as const };
+    }
+  }
   try {
-    await query("SELECT 1");
-    return { available: true as const };
+    await ensureFileAccountStore();
+    return { available: true as const, mode: "shared-file" as const };
   } catch (error) {
-    console.error("[auth] database unavailable:", error);
-    return { available: false as const };
+    console.error("[auth] shared account store unavailable:", error);
+    return { available: false as const, mode: "none" as const };
   }
 });
 
 export const seedSuperAdminAccountFn = createServerFn({ method: "POST" }).handler(async () => {
-  if (!isDatabaseConfigured()) return { ok: false as const, error: "Database not configured." };
+  if (!isDatabaseConfigured()) {
+    if (await fileFindUserByEmail(SUPER_ADMIN_EMAIL)) {
+      return { ok: true as const, seeded: false as const };
+    }
+    await fileCreateUser({
+      email: SUPER_ADMIN_EMAIL,
+      passwordHash: await hashPasswordServer(SUPER_ADMIN_PASSWORD),
+      role: "SUPER_ADMIN",
+      profile: null,
+    });
+    return { ok: true as const, seeded: true as const };
+  }
 
   const existing = await query<DbUser>("SELECT id FROM users WHERE lower(email) = $1 LIMIT 1", [
     SUPER_ADMIN_EMAIL,
@@ -89,6 +140,8 @@ export const checkEmailAvailableFn = createServerFn({ method: "POST" })
   .validator(emailInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
+      const existing = await fileFindUserByEmail(data.email);
+      if (existing) return { available: false as const, conflict: "exists" as const };
       return { available: true as const, conflict: null };
     }
     const found = await query("SELECT id FROM users WHERE lower(email) = $1 LIMIT 1", [data.email]);
@@ -115,7 +168,30 @@ export const registerAccountFn = createServerFn({ method: "POST" })
   .validator(registerInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured." };
+      if (await fileFindUserByEmail(data.email)) {
+        return { ok: false as const, error: EMAIL_ALREADY_EXISTS_ERROR };
+      }
+      try {
+        const user = await fileCreateUser({
+          email: data.email,
+          passwordHash: await hashPasswordServer(data.password),
+          role: "SME_OWNER",
+          profile: {
+            businessName: data.businessName.trim(),
+            ownerName: data.ownerName.trim(),
+            phone: data.phone?.trim() || "",
+            businessType: data.businessType,
+            employees: data.employees,
+          },
+        });
+        return issueFileSession(user);
+      } catch (error) {
+        if (error instanceof Error && error.message === "EMAIL_EXISTS") {
+          return { ok: false as const, error: EMAIL_ALREADY_EXISTS_ERROR };
+        }
+        console.error("[auth] register failed:", error);
+        return { ok: false as const, error: "Could not create account. Please try again." };
+      }
     }
 
     const existing = await query("SELECT id FROM users WHERE lower(email) = $1 LIMIT 1", [
@@ -181,7 +257,17 @@ export const loginAccountFn = createServerFn({ method: "POST" })
   .validator(loginInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured." };
+      const user = await fileFindUserByEmail(data.email);
+      if (!user) return { ok: false as const, error: "Invalid email or password." };
+      if (user.status === "suspended") {
+        return {
+          ok: false as const,
+          error: "Your account has been suspended. Please contact support.",
+        };
+      }
+      const valid = await verifyPasswordServer(data.password, user.passwordHash);
+      if (!valid) return { ok: false as const, error: "Invalid email or password." };
+      return issueFileSession(user);
     }
 
     const found = await query<DbUser>(
@@ -246,7 +332,18 @@ export const resetAccountPasswordFn = createServerFn({ method: "POST" })
   .validator(resetInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured." };
+      const user = await fileFindUserByEmail(data.email);
+      if (!user) return { ok: false as const, error: "No account found with that email." };
+      const updated = await fileUpdateUser(user.id, {
+        passwordHash: await hashPasswordServer(data.newPassword),
+      });
+      if (!updated) return { ok: false as const, error: "No account found with that email." };
+      return {
+        ok: true as const,
+        userId: updated.id,
+        email: updated.email,
+        role: updated.role,
+      };
     }
 
     const found = await query<DbUser>(
@@ -281,7 +378,20 @@ export const changeAccountPasswordFn = createServerFn({ method: "POST" })
   .validator(changePasswordInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured." };
+      const user = await fileFindUserById(data.userId);
+      if (!user) return { ok: false as const, error: "Account not found." };
+      const valid = await verifyPasswordServer(data.currentPassword, user.passwordHash);
+      if (!valid) return { ok: false as const, error: "Current password is incorrect." };
+      const updated = await fileUpdateUser(user.id, {
+        passwordHash: await hashPasswordServer(data.newPassword),
+      });
+      if (!updated) return { ok: false as const, error: "Account not found." };
+      return {
+        ok: true as const,
+        userId: updated.id,
+        email: updated.email,
+        role: updated.role,
+      };
     }
 
     const found = await query<DbUser>(
@@ -320,7 +430,23 @@ export const updateAccountEmailFn = createServerFn({ method: "POST" })
   .validator(updateEmailInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured." };
+      const user = await fileFindUserById(data.userId);
+      if (!user) return { ok: false as const, error: "Account not found." };
+      try {
+        const updated = await fileUpdateUser(user.id, { email: data.email });
+        if (!updated) return { ok: false as const, error: "Account not found." };
+        return {
+          ok: true as const,
+          userId: updated.id,
+          email: updated.email,
+          role: updated.role,
+        };
+      } catch (error) {
+        if (error instanceof Error && error.message === "EMAIL_EXISTS") {
+          return { ok: false as const, error: "That email is already in use." };
+        }
+        throw error;
+      }
     }
 
     const found = await query<DbUser>(
@@ -360,7 +486,19 @@ export const updateAccountStatusFn = createServerFn({ method: "POST" })
   .validator(updateStatusInput)
   .handler(async ({ data }) => {
     if (!isDatabaseConfigured()) {
-      return { ok: false as const, error: "Database not configured." };
+      const user = await fileFindUserById(data.userId);
+      if (!user) return { ok: false as const, error: "Account not found." };
+      if (user.role === "SUPER_ADMIN") {
+        return { ok: false as const, error: "Cannot change super admin status." };
+      }
+      const updated = await fileUpdateUser(user.id, { status: data.status });
+      if (!updated) return { ok: false as const, error: "Account not found." };
+      return {
+        ok: true as const,
+        userId: updated.id,
+        email: updated.email,
+        role: updated.role,
+      };
     }
 
     const found = await query<DbUser>(
@@ -387,7 +525,23 @@ export const updateAccountStatusFn = createServerFn({ method: "POST" })
   });
 
 export const listAccountsFn = createServerFn({ method: "GET" }).handler(async () => {
-  if (!isDatabaseConfigured()) return { accounts: [] as const };
+  if (!isDatabaseConfigured()) {
+    const users = await fileListUsers();
+    return {
+      accounts: users.map((user) => ({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt,
+        businessName: user.profile?.businessName ?? "",
+        ownerName: user.profile?.ownerName ?? "",
+        phone: user.profile?.phone ?? "",
+        businessType: user.profile?.businessType ?? "",
+        employees: user.profile?.employees ?? 0,
+      })),
+    };
+  }
 
   const result = await query<DbAccountRow>(
     `SELECT u.id, u.email, u.password_hash, u.role, u.status, u.created_at,
@@ -416,7 +570,24 @@ export const listAccountsFn = createServerFn({ method: "GET" }).handler(async ()
 export const getAccountByIdFn = createServerFn({ method: "POST" })
   .validator(z.object({ userId: z.string().uuid() }))
   .handler(async ({ data }) => {
-    if (!isDatabaseConfigured()) return { account: null };
+    if (!isDatabaseConfigured()) {
+      const user = await fileFindUserById(data.userId);
+      if (!user) return { account: null };
+      return {
+        account: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          createdAt: user.createdAt,
+          businessName: user.profile?.businessName ?? "",
+          ownerName: user.profile?.ownerName ?? "",
+          phone: user.profile?.phone ?? "",
+          businessType: user.profile?.businessType ?? "",
+          employees: user.profile?.employees ?? 0,
+        },
+      };
+    }
 
     const found = await query<DbAccountRow>(
       `SELECT u.id, u.email, u.password_hash, u.role, u.status, u.created_at,

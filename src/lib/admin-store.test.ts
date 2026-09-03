@@ -1,6 +1,9 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { getAuthBackendStatusFn, listAccountsFn } from "@/lib/api/account.functions";
+import { loadAllSmeRiskStatesFn } from "@/lib/api/risk-data.functions";
 import { adminStore } from "./admin-store";
 import { registerUser, resetAuthModuleState, updateUserStatus } from "./auth";
+import { resetRemoteAuthCache } from "./remote-auth";
 import { type State } from "./risk-store";
 
 function seedUserState(userId: string, state: Partial<State>) {
@@ -29,6 +32,11 @@ describe("admin-store dashboard metrics", () => {
   beforeEach(() => {
     resetAuthModuleState();
     localStorage.clear();
+    vi.mocked(getAuthBackendStatusFn).mockResolvedValue({
+      available: false,
+      mode: "none",
+    });
+    vi.mocked(listAccountsFn).mockResolvedValue({ accounts: [] });
   });
 
   it("returns empty metrics when no SMEs exist", () => {
@@ -246,5 +254,38 @@ describe("admin-store dashboard metrics", () => {
     adminStore.refresh();
     const loaded = adminStore.getSmeDetails(result.userId);
     expect(loaded.state?.profile.businessName).toBe("Acme");
+  });
+
+  it("shows SMEs registered on another device after refresh", async () => {
+    vi.mocked(getAuthBackendStatusFn).mockResolvedValueOnce({
+      available: true,
+      mode: "shared-file",
+    });
+    vi.mocked(listAccountsFn).mockResolvedValue({
+      accounts: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          email: "mobile-sme@test.com",
+          role: "SME_OWNER",
+          status: "active",
+          createdAt: "2026-09-03T00:00:00.000Z",
+          businessName: "Phone Shop",
+          ownerName: "Ama Mensah",
+          phone: "",
+          businessType: "Retail",
+          employees: 2,
+        },
+      ],
+    });
+    vi.mocked(loadAllSmeRiskStatesFn).mockResolvedValue({ states: {} });
+    resetRemoteAuthCache();
+
+    adminStore.refresh();
+
+    await vi.waitFor(() => {
+      const sme = adminStore.getData().smes.find((row) => row.email === "mobile-sme@test.com");
+      expect(sme?.businessName).toBe("Phone Shop");
+      expect(sme?.ownerName).toBe("Ama Mensah");
+    });
   });
 });

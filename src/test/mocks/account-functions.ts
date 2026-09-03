@@ -1,6 +1,9 @@
 import { vi } from "vitest";
 
-export const getAuthBackendStatusFn = vi.fn(async () => ({ available: false as const }));
+export const getAuthBackendStatusFn = vi.fn(async () => ({
+  available: false as const,
+  mode: "none" as const,
+}));
 
 export const seedSuperAdminAccountFn = vi.fn(async () => ({
   ok: false as const,

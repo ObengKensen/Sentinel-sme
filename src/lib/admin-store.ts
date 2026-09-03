@@ -9,8 +9,10 @@ import {
   USERS_CHANGED_EVENT,
   type UserStatus,
 } from "./auth";
+import { fetchRemoteAccounts } from "./remote-auth";
 import {
   loadStateForUser,
+  mirrorRemoteAccountProfile,
   overallRisk,
   financialRisk,
   cyberRisk,
@@ -67,6 +69,8 @@ export type AdminDashboardData = {
 const listeners = new Set<() => void>();
 let cache: AdminDashboardData | null = null;
 let syncStarted = false;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+const ADMIN_POLL_MS = 15_000;
 
 /** SME profile/risk data writes in the current tab. */
 const STATE_CHANGED_EVENT = "srs:state-changed";
@@ -93,8 +97,13 @@ export function initAdminStoreSync() {
   window.addEventListener(USERS_CHANGED_EVENT, notify);
   window.addEventListener(STATE_CHANGED_EVENT, notify);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") notify();
+    if (document.visibilityState === "visible") adminStore.refresh();
   });
+  if (!pollTimer) {
+    pollTimer = setInterval(() => {
+      if (document.visibilityState === "visible") adminStore.refresh();
+    }, ADMIN_POLL_MS);
+  }
 }
 
 function countByLevel(counts: { low: number; medium: number; high: number }, level: Severity) {
@@ -291,6 +300,18 @@ export const adminStore = {
       try {
         await syncRemoteUserDirectory();
         await syncAllRemoteRiskStates();
+        const accounts = await fetchRemoteAccounts();
+        for (const account of accounts) {
+          if (account.role !== "SME_OWNER") continue;
+          mirrorRemoteAccountProfile(account.id, {
+            businessName: account.businessName ?? "",
+            ownerName: account.ownerName ?? "",
+            email: account.email,
+            phone: account.phone ?? "",
+            businessType: account.businessType || "Other",
+            employees: account.employees ?? 0,
+          });
+        }
       } catch {
         // Keep existing local mirrors if remote sync fails.
       } finally {

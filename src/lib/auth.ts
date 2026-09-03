@@ -434,7 +434,7 @@ function upsertDirectoryAccount(account: UserAccount) {
   });
 }
 
-/** Pull account directory from Postgres into the local mirror used by admin views. */
+/** Pull account directory from the shared store into the local mirror used by admin views. */
 export async function syncRemoteUserDirectory(): Promise<void> {
   if (typeof window === "undefined") return;
   if (!(await isRemoteAuthEnabled())) return;
@@ -759,45 +759,50 @@ export async function registerUser(
   return { ok: true, userId: user.id, email: user.email, role: user.role };
 }
 
-export async function loginUser(
-  email: string,
-  password: string,
-): Promise<AuthResult & { profile?: RemoteProfile | null }> {
-  await ensureSeeded();
-  const normalized = normalizeEmail(email);
-
-  if (await isRemoteAuthEnabled()) {
-    const remote = await remoteLogin(normalized, password);
-    if (!remote.ok) return remote;
-    if (!("token" in remote)) return { ok: false, error: "Invalid email or password." };
-
-    await upsertDirectoryAccount(
-      directoryRowFromRemote({
-        id: remote.userId,
-        email: remote.email,
-        role: remote.role,
-        status: remote.status,
-        createdAt: remote.createdAt,
-      }),
-    );
-    await applyIssuedToken(remote.token);
+function readLocalProfileForUser(userId: string, email: string): RegisterProfileInput {
+  if (typeof window === "undefined") {
     return {
-      ok: true,
-      userId: remote.userId,
-      email: remote.email,
-      role: remote.role,
-      profile: remote.profile,
+      businessName: email,
+      ownerName: email,
+      phone: "",
+      businessType: "Other",
+      employees: 1,
     };
   }
-
-  const candidates = findUsersByEmail(normalized);
-
-  if (candidates.length === 0) {
-    if (hasOrphanedProfileForEmail(normalized)) {
-      return { ok: false, error: ORPHANED_PROFILE_ERROR };
+  try {
+    const raw = localStorage.getItem(`srs:state:v1:${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { profile?: Partial<RegisterProfileInput> };
+      const profile = parsed.profile;
+      if (profile?.businessName?.trim() && profile.ownerName?.trim()) {
+        return {
+          businessName: profile.businessName.trim(),
+          ownerName: profile.ownerName.trim(),
+          phone: profile.phone?.trim() || "",
+          businessType: profile.businessType?.trim() || "Other",
+          employees:
+            typeof profile.employees === "number" && profile.employees >= 1 ? profile.employees : 1,
+        };
+      }
     }
-    return { ok: false, error: "Invalid email or password." };
+  } catch {
+    /* ignore */
   }
+  return {
+    businessName: email,
+    ownerName: email,
+    phone: "",
+    businessType: "Other",
+    employees: 1,
+  };
+}
+
+async function loginAgainstLocalDirectory(
+  normalized: string,
+  password: string,
+): Promise<(AuthResult & { profile?: RemoteProfile | null }) | null> {
+  const candidates = findUsersByEmail(normalized);
+  if (candidates.length === 0) return null;
 
   let user: UserAccount | undefined;
   for (const candidate of candidates) {
@@ -817,6 +822,71 @@ export async function loginUser(
   await collapseDuplicatesForEmail(normalized, user.id);
   await establishSession(user.id, user.email, user.role);
   return { ok: true, userId: user.id, email: user.email, role: user.role };
+}
+
+async function applyRemoteLoginSuccess(
+  remote: Extract<Awaited<ReturnType<typeof remoteLogin>>, { ok: true; token: string }>,
+) {
+  await upsertDirectoryAccount(
+    directoryRowFromRemote({
+      id: remote.userId,
+      email: remote.email,
+      role: remote.role,
+      status: remote.status,
+      createdAt: remote.createdAt,
+    }),
+  );
+  await applyIssuedToken(remote.token);
+  return {
+    ok: true as const,
+    userId: remote.userId,
+    email: remote.email,
+    role: remote.role,
+    profile: remote.profile,
+  };
+}
+
+export async function loginUser(
+  email: string,
+  password: string,
+): Promise<AuthResult & { profile?: RemoteProfile | null }> {
+  await ensureSeeded();
+  const normalized = normalizeEmail(email);
+
+  if (await isRemoteAuthEnabled()) {
+    const remote = await remoteLogin(normalized, password);
+    if (remote.ok && "token" in remote) {
+      return applyRemoteLoginSuccess(remote);
+    }
+
+    // Account may still exist only in this browser from before shared auth.
+    const local = await loginAgainstLocalDirectory(normalized, password);
+    if (local?.ok) {
+      const promoted = await remoteRegister({
+        email: normalized,
+        password,
+        ...readLocalProfileForUser(local.userId, normalized),
+      });
+      if (promoted.ok && "token" in promoted) {
+        return applyRemoteLoginSuccess(promoted);
+      }
+      if (!promoted.ok && promoted.error === EMAIL_ALREADY_EXISTS_ERROR) {
+        const retry = await remoteLogin(normalized, password);
+        if (retry.ok && "token" in retry) return applyRemoteLoginSuccess(retry);
+      }
+      return local;
+    }
+
+    if (!remote.ok) return remote;
+    return { ok: false, error: "Invalid email or password." };
+  }
+
+  const local = await loginAgainstLocalDirectory(normalized, password);
+  if (local) return local;
+  if (hasOrphanedProfileForEmail(normalized)) {
+    return { ok: false, error: ORPHANED_PROFILE_ERROR };
+  }
+  return { ok: false, error: "Invalid email or password." };
 }
 
 export async function resetPassword(email: string, newPassword: string): Promise<AuthResult> {

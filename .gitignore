@@ -23,6 +23,9 @@ dist-ssr
 !.env.example
 !**/.env.example
 
+# Shared local account store (used when DATABASE_URL is not set)
+.data/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

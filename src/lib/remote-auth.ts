@@ -57,14 +57,18 @@ export function resetRemoteAuthCache() {
 }
 
 export async function isRemoteAuthEnabled(): Promise<boolean> {
-  if (remoteEnabledCache !== null) return remoteEnabledCache;
+  if (remoteEnabledCache === true) return true;
   try {
     const status = await getAuthBackendStatusFn();
-    remoteEnabledCache = status.available;
+    if (status.available) {
+      remoteEnabledCache = true;
+      return true;
+    }
+    // Do not cache a miss — a flaky first check would pin this browser to local-only auth.
+    return false;
   } catch {
-    remoteEnabledCache = false;
+    return false;
   }
-  return remoteEnabledCache;
 }
 
 export async function seedRemoteSuperAdmin(): Promise<boolean> {
@@ -136,7 +140,20 @@ export async function remoteUpdateStatus(userId: string, status: UserStatus): Pr
   return updateAccountStatusFn({ data: { userId, status } });
 }
 
-export async function fetchRemoteAccounts() {
+export type RemoteDirectoryAccount = {
+  id: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  businessName?: string;
+  ownerName?: string;
+  phone?: string;
+  businessType?: string;
+  employees?: number;
+};
+
+export async function fetchRemoteAccounts(): Promise<RemoteDirectoryAccount[]> {
   if (!(await isRemoteAuthEnabled())) return [];
   const result = await listAccountsFn();
   return result.accounts;
