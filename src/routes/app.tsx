@@ -10,16 +10,16 @@ export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
 
-const titles: Record<string, string> = {
-  "/app/dashboard": "Dashboard",
-  "/app/financial": "Financial Monitoring",
-  "/app/cybersecurity": "Cybersecurity Monitoring",
-  "/app/compliance": "Compliance Monitoring",
-  "/app/operational": "Operational Monitoring",
-  "/app/alerts": "Alerts Center",
-  "/app/reports": "Reports",
-  "/app/history": "Risk History",
-  "/app/profile": "Profile",
+const titles: Record<string, { short: string; full: string }> = {
+  "/app/dashboard": { short: "Dashboard", full: "Dashboard" },
+  "/app/financial": { short: "Financial", full: "Financial Monitoring" },
+  "/app/cybersecurity": { short: "Cybersecurity", full: "Cybersecurity Monitoring" },
+  "/app/compliance": { short: "Compliance", full: "Compliance Monitoring" },
+  "/app/operational": { short: "Operational", full: "Operational Monitoring" },
+  "/app/alerts": { short: "Alerts", full: "Alerts Center" },
+  "/app/reports": { short: "Reports", full: "Reports" },
+  "/app/history": { short: "Risk History", full: "Risk History" },
+  "/app/profile": { short: "Profile", full: "Profile" },
 };
 
 function AppLayout() {
@@ -55,13 +55,16 @@ function AppLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background shadow-md px-4 print:hidden">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="mx-1 h-5" />
-          <div className="text-3xl font-semibold tracking-tight">{titles[pathname] ?? "Risk Sentinel"}</div>
+        <header className="sticky top-0 z-10 flex min-h-14 items-center gap-2 border-b bg-background px-3 py-2 shadow-md sm:px-4 print:hidden">
+          <SidebarTrigger className="shrink-0" />
+          <Separator orientation="vertical" className="mx-1 hidden h-5 sm:block" />
+          <h1 className="min-w-0 flex-1 truncate text-base font-semibold leading-tight tracking-tight sm:text-xl lg:text-3xl">
+            <span className="sm:hidden">{titles[pathname]?.short ?? "Risk Sentinel"}</span>
+            <span className="hidden sm:inline">{titles[pathname]?.full ?? "Risk Sentinel"}</span>
+          </h1>
           <Link
             to="/app/profile"
-            className="ml-auto flex items-center gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            className="ml-auto flex shrink-0 items-center gap-2 rounded-md px-1 py-1 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer sm:px-2"
             aria-label="View profile"
           >
             <div className="text-right hidden sm:block">
