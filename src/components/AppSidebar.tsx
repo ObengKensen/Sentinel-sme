@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -22,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { store, useStore } from "@/lib/risk-store";
 
@@ -40,8 +42,16 @@ const items = [
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   const alerts = useStore((s) => s.alerts.filter((a) => a.status === "active").length);
   const profile = useStore((s) => s.profile);
+  const closeMobileNav = () => {
+    if (isMobile) setOpenMobile(false);
+  };
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
 
   const onLogout = () => {
     store.logout();
@@ -75,7 +85,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                      <Link to={item.url} activeOptions={{ exact: true }}>
+                      <Link to={item.url} activeOptions={{ exact: true }} onClick={closeMobileNav}>
                         <item.icon />
                         <span>{item.title}</span>
                         {item.title === "Alerts" && alerts > 0 && (

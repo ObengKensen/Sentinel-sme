@@ -148,11 +148,11 @@ function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-secondary/40">
-      <Card className="w-full max-w-2xl p-8 shadow-xl">
+        <Card className="w-full max-w-2xl p-5 shadow-xl sm:p-8">
         <Link to="/" className="font-montserrat text-2xl block mx-auto text-center font-bold mb-6">
           Risk Sentinel
         </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Create your business account</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Create your business account</h1>
         <p className="text-base text-muted-foreground mt-1">
           Set up your SME profile to start monitoring risks.
         </p>

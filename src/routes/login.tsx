@@ -107,8 +107,8 @@ function LoginPage() {
         </p>
       </div>
       <div className="flex items-center justify-center p-6">
-        <Card className="w-full max-w-md p-8">
-          <h1 className="text-3xl font-semibold tracking-tight">Welcome back</h1>
+        <Card className="w-full max-w-md p-5 sm:p-8">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Welcome back</h1>
           <form key={formKey} method="post" onSubmit={submit} className="mt-6 space-y-4">
             <CsrfTokenField />
             <div className="space-y-1.5">

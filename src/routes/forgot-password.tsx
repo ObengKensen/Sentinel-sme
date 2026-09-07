@@ -54,7 +54,7 @@ function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-secondary/40">
-      <Card className="w-full max-w-md p-8">
+      <Card className="w-full max-w-md p-5 sm:p-8">
         <Link to="/" className="font-montserrat text-2xl inline-block font-bold mb-6">
           Risk Sentinel
         </Link>

@@ -204,7 +204,12 @@ function Dashboard() {
               <div className="text-sm text-muted-foreground">Last six recorded periods</div>
             </div>
           </div>
-          <div className="h-72">
+          <div className="h-72 min-w-0">
+            {incomeExpense.length === 0 ? (
+              <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                Submit financial data to see income vs expenses.
+              </div>
+            ) : (
             <ResponsiveContainer>
               <BarChart data={incomeExpense}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -222,13 +227,19 @@ function Dashboard() {
                 <Bar dataKey="expenses" fill="var(--color-chart-5)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
         </Card>
 
         <Card className="p-5">
           <div className="text-xl font-semibold mb-1">Risk Distribution</div>
           <div className="text-sm text-muted-foreground mb-2">By category score</div>
-          <div className="h-72">
+          <div className="h-72 min-w-0">
+            {!hasAnyRiskData(state) ? (
+              <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                Submit monitoring data to see risk distribution.
+              </div>
+            ) : (
             <ResponsiveContainer>
               <PieChart>
                 <Pie
@@ -252,13 +263,19 @@ function Dashboard() {
                 />
               </PieChart>
             </ResponsiveContainer>
+            )}
           </div>
         </Card>
 
         <Card className="p-5 lg:col-span-3">
           <div className="text-xl font-semibold mb-1">Monthly Risk Trend</div>
           <div className="text-sm text-muted-foreground mb-4">Overall risk score over time</div>
-          <div className="h-64">
+          <div className="h-64 min-w-0">
+            {trend.length === 0 ? (
+              <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                Submit monitoring data to see the monthly risk trend.
+              </div>
+            ) : (
             <ResponsiveContainer>
               <LineChart data={trend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -280,6 +297,7 @@ function Dashboard() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>
@@ -304,26 +322,28 @@ function Dashboard() {
         ) : (
           <div className="divide-y">
             {recent.map((a) => (
-              <div key={a.id} className="py-3 flex items-start gap-4">
-                <span
-                  className={`text-xs font-semibold uppercase rounded-full px-2 py-1 ${severityColor[a.severity]}`}
-                >
-                  {a.severity}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">{a.title}</div>
-                  <div className="text-sm text-muted-foreground">{a.action}</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-1">{a.id}</div>
+              <div key={a.id} className="flex flex-col gap-2 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`text-xs font-semibold uppercase rounded-full px-2 py-1 ${severityColor[a.severity]}`}
+                  >
+                    {a.severity}
+                  </span>
+                  <span className="text-sm text-muted-foreground capitalize">{a.category}</span>
+                  <span
+                    className={`text-xs font-semibold capitalize rounded-full px-2 py-1 ${alertStatusColor[a.status]}`}
+                  >
+                    {a.status}
+                  </span>
+                  <time className="w-full shrink-0 text-sm text-muted-foreground whitespace-nowrap tabular-nums sm:ml-auto sm:w-auto">
+                    {a.date}
+                  </time>
                 </div>
-                <div className="text-sm text-muted-foreground capitalize shrink-0">
-                  {a.category}
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm break-words">{a.title}</div>
+                  <div className="text-sm text-muted-foreground break-words">{a.action}</div>
+                  <div className="text-xs text-muted-foreground font-mono mt-1 break-all">{a.id}</div>
                 </div>
-                <span
-                  className={`text-xs font-semibold capitalize rounded-full px-2 py-1 shrink-0 ${alertStatusColor[a.status]}`}
-                >
-                  {a.status}
-                </span>
-                <div className="text-sm text-muted-foreground shrink-0">{a.date}</div>
               </div>
             ))}
           </div>

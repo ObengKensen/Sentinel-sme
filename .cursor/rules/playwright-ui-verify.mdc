@@ -1,0 +1,15 @@
+---
+description: After UI or frontend changes, verify the affected pages with the Playwright MCP on a small viewport.
+globs: src/**/*.{tsx,css}
+alwaysApply: true
+---
+
+# Playwright UI verification
+
+After any UI or frontend change (layout, styling, routing, client state, or rendered data), verify the affected flow with the **Playwright MCP** (`user-playwright`) before finishing.
+
+- Resize to a phone viewport (375x812) in addition to checking desktop if layout changed.
+- Exercise the changed page the way a user would: navigate, click, type, submit.
+- Look for overflow, clipped titles, overlapping controls, and unusable tap targets.
+- If a problem is found, fix it and re-check the same page with Playwright.
+- Do not treat a single screenshot as enough; confirm behavior and layout.

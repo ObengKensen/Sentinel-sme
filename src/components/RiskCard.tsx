@@ -23,7 +23,7 @@ export function RiskCard({
       <div className="flex flex-col gap-2 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 text-sm font-semibold leading-5 tracking-normal whitespace-nowrap">
+          <span className="min-w-0 text-sm font-semibold leading-5 tracking-normal break-words">
             {title}
           </span>
         </div>

@@ -147,7 +147,7 @@ function Landing() {
 
       <section className="px-4 py-16 sm:px-6 sm:py-20 md:py-28">
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-          <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl">
+          <h1 className="text-3xl font-extrabold leading-[1.15] tracking-tight sm:text-5xl md:text-6xl">
             Stay Ahead of Business Risks with{" "}
             <span className="text-accent">Early Detection</span> and Actionable Insight
           </h1>
@@ -197,7 +197,7 @@ function Landing() {
       <section id="features" className="border-t bg-secondary/40">
         <div className="max-w-6xl mx-auto px-6 py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <h2 className="text-4xl font-semibold tracking-tight">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
               Four risk categories. One dashboard.
             </h2>
             <p className="mt-3 text-muted-foreground">

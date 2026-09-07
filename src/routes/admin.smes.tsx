@@ -62,7 +62,73 @@ function SmeManagement() {
         <h2 className="text-lg font-semibold">SME Management</h2>
       </div>
 
-      <Card className="p-0 overflow-hidden">
+      <div className="grid gap-3 md:hidden">
+        {smes.length === 0 ? (
+          <Card className="p-6 text-center text-sm text-muted-foreground">
+            No SME accounts registered yet.
+          </Card>
+        ) : (
+          smes.map((sme) => (
+            <Card key={sme.userId} className="p-4 space-y-3">
+              <div className="min-w-0">
+                <div className="font-semibold break-words">{sme.businessName}</div>
+                <div className="text-sm text-muted-foreground break-words">{sme.ownerName}</div>
+                <div className="text-sm text-muted-foreground break-all">{sme.email}</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">{sme.businessType}</span>
+                <span
+                  className={`text-xs font-semibold uppercase rounded-full px-2 py-1 ${severityColor[sme.riskLevel]}`}
+                >
+                  {sme.riskLevel}
+                </span>
+                <Badge variant={sme.accountStatus === "active" ? "default" : "destructive"}>
+                  {sme.accountStatus}
+                </Badge>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelected(sme)}>
+                  <Eye className="h-4 w-4 mr-1" /> View
+                </Button>
+                {sme.accountStatus === "active" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive"
+                    disabled={loading === sme.userId}
+                    onClick={() => suspend(sme.userId)}
+                  >
+                    {loading === sme.userId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Ban className="h-4 w-4 mr-1" /> Suspend
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loading === sme.userId}
+                    onClick={() => reactivate(sme.userId)}
+                  >
+                    {loading === sme.userId ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-1" /> Reactivate
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      <Card className="hidden overflow-hidden p-0 md:block">
         <Table>
           <TableHeader>
             <TableRow>

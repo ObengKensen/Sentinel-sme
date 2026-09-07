@@ -79,7 +79,7 @@ function AdminLayout() {
             </div>
           </Link>
         </header>
-        <main className="p-6 print:p-0">
+        <main className="min-w-0 p-4 sm:p-6 print:p-0">
           <Outlet />
         </main>
       </SidebarInset>

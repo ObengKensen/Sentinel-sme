@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RiskCard } from "@/components/RiskCard";
 import { ScoreBar } from "@/components/ScoreBar";
 import {
@@ -193,6 +192,7 @@ function Page() {
                 <button
                   key={threat.id}
                   type="button"
+                  aria-pressed={checked}
                   onClick={() => toggleThreat(threat.id, !checked)}
                   className={cn(
                     "text-left rounded-lg border p-4 transition-colors",
@@ -202,12 +202,15 @@ function Page() {
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={checked}
-                      onCheckedChange={(v) => toggleThreat(threat.id, v === true)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="mt-0.5"
-                    />
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "mt-0.5 grid h-4 w-4 shrink-0 place-content-center rounded-sm border border-primary shadow-sm",
+                        checked ? "bg-primary text-primary-foreground" : "bg-background",
+                      )}
+                    >
+                      {checked ? <span className="block h-2 w-2 bg-current" /> : null}
+                    </span>
                     <div>
                       <div className="font-semibold text-sm">{threat.name}</div>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">

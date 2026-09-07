@@ -101,9 +101,9 @@ function Page() {
         ) : (
           <ul className="text-sm space-y-2">
             {state.alerts.filter((a) => a.status === "active").map((a) => (
-              <li key={a.id} className="flex justify-between gap-4 border-b pb-2">
-                <span><strong className="capitalize">{a.category}:</strong> {a.title}</span>
-                <span className="text-muted-foreground">{a.date}</span>
+              <li key={a.id} className="flex flex-col gap-1 border-b pb-2 sm:flex-row sm:justify-between sm:gap-4">
+                <span className="min-w-0 break-words"><strong className="capitalize">{a.category}:</strong> {a.title}</span>
+                <span className="text-muted-foreground whitespace-nowrap tabular-nums">{a.date}</span>
               </li>
             ))}
           </ul>
