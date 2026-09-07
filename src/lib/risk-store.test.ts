@@ -19,7 +19,7 @@ import {
   resetStoreAfterDataWipe,
   type State,
 } from "./risk-store";
-import { resetAuthModuleState, registerUser, clearSession, EMAIL_ALREADY_EXISTS_ERROR, ORPHANED_PROFILE_ERROR } from "./auth";
+import { resetAuthModuleState, registerUser, clearSession, EMAIL_ALREADY_EXISTS_ERROR } from "./auth";
 
 const emptyState = (): State => ({
   profile: {
@@ -619,7 +619,7 @@ describe("store.register", () => {
     expect(result).toEqual({ ok: false, error: EMAIL_ALREADY_EXISTS_ERROR });
   });
 
-  it("rejects orphaned profile email", async () => {
+  it("creates an account even if leftover local profile data exists", async () => {
     const userId = "orphan-user-id";
     localStorage.setItem(
       `srs:state:v1:${userId}`,
@@ -633,6 +633,7 @@ describe("store.register", () => {
       }),
     );
     const result = await store.register({ ...sampleProfile, email: "orphan-store@test.com" }, "password1");
-    expect(result).toEqual({ ok: false, error: ORPHANED_PROFILE_ERROR });
+    expect(result.ok).toBe(true);
+    expect(store.isAuthed()).toBe(true);
   });
 });

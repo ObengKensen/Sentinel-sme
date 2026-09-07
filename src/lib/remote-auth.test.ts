@@ -12,7 +12,7 @@ describe("isRemoteAuthEnabled", () => {
   it("does not cache a failed backend check", async () => {
     vi.mocked(getAuthBackendStatusFn)
       .mockResolvedValueOnce({ available: false, mode: "none" })
-      .mockResolvedValueOnce({ available: true, mode: "shared-file" });
+      .mockResolvedValueOnce({ available: true, mode: "postgres" });
 
     expect(await isRemoteAuthEnabled()).toBe(false);
     expect(await isRemoteAuthEnabled()).toBe(true);
@@ -21,7 +21,7 @@ describe("isRemoteAuthEnabled", () => {
   it("caches a successful backend check", async () => {
     vi.mocked(getAuthBackendStatusFn).mockResolvedValue({
       available: true,
-      mode: "shared-file",
+      mode: "postgres",
     });
 
     expect(await isRemoteAuthEnabled()).toBe(true);

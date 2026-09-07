@@ -22,7 +22,6 @@ import {
   legacyFlagsFromAssessment,
   type CyberAssessmentPayload,
 } from "./cyber-threats";
-import { isRemoteAuthEnabled } from "./remote-auth";
 import {
   loadAllRemoteRiskStates,
   loadRemoteRiskState,
@@ -171,7 +170,6 @@ export function loadStateForUser(userId: string): State | null {
 /** Mirror remote SME states into localStorage so admin dashboards stay sync-friendly. */
 export async function syncAllRemoteRiskStates(): Promise<void> {
   if (typeof window === "undefined") return;
-  if (!(await isRemoteAuthEnabled())) return;
   const states = await loadAllRemoteRiskStates();
   for (const [userId, remoteState] of Object.entries(states)) {
     writeLocalState(userId, remoteState);
@@ -179,10 +177,6 @@ export async function syncAllRemoteRiskStates(): Promise<void> {
 }
 
 async function resolveUserState(userId: string, fallback: State): Promise<State> {
-  if (!(await isRemoteAuthEnabled())) {
-    return loadUserState(userId, fallback);
-  }
-
   const remote = await loadRemoteRiskState(userId);
   if (remote && stateHasMonitoringData(remote)) {
     writeLocalState(userId, remote);
@@ -296,7 +290,6 @@ function scheduleRemotePersist() {
     remotePersistChain = remotePersistChain
       .then(async () => {
         if (seq !== remotePersistSeq || currentUserId !== userId) return;
-        if (!(await isRemoteAuthEnabled())) return;
         const snapshot = state;
         const saved = await saveRemoteRiskState(userId, snapshot);
         if (!saved || seq !== remotePersistSeq || currentUserId !== userId) return;
@@ -314,10 +307,7 @@ async function switchToUser(userId: string, fallback: State) {
   currentUserId = userId;
   state = await resolveUserState(userId, fallback);
   persist({ skipRemote: true });
-  // If we only have local/fallback data, push it up once.
-  if (await isRemoteAuthEnabled()) {
-    scheduleRemotePersist();
-  }
+  scheduleRemotePersist();
 }
 
 function setState(updater: (s: State) => State) {

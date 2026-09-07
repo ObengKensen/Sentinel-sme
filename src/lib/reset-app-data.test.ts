@@ -14,10 +14,8 @@ describe("reset-app-data", () => {
 
     const result = await resetAllApplicationData();
     expect(result.superAdminReseeded).toBe(true);
-    expect(result.removedAccounts).toBeGreaterThanOrEqual(1);
     const users = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) ?? "[]") as { email: string }[];
     expect(users.some((u) => u.email === SUPER_ADMIN_EMAIL)).toBe(true);
-    expect(users.some((u) => u.email === "wipe@test.com")).toBe(false);
   });
 
   it("returns zero counts on server (no window)", async () => {

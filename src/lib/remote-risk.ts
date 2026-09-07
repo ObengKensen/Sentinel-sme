@@ -4,12 +4,10 @@ import {
   saveRiskStateFn,
   type PersistedRiskState,
 } from "./api/risk-data.functions";
-import { isRemoteAuthEnabled } from "./remote-auth";
 
 export type { PersistedRiskState };
 
 export async function loadRemoteRiskState(userId: string): Promise<PersistedRiskState | null> {
-  if (!(await isRemoteAuthEnabled())) return null;
   try {
     const result = await loadRiskStateFn({ data: { userId } });
     return result.state;
@@ -20,7 +18,6 @@ export async function loadRemoteRiskState(userId: string): Promise<PersistedRisk
 }
 
 export async function loadAllRemoteRiskStates(): Promise<Record<string, PersistedRiskState>> {
-  if (!(await isRemoteAuthEnabled())) return {};
   try {
     const result = await loadAllSmeRiskStatesFn();
     return result.states;
@@ -34,7 +31,6 @@ export async function saveRemoteRiskState(
   userId: string,
   state: PersistedRiskState,
 ): Promise<PersistedRiskState | null> {
-  if (!(await isRemoteAuthEnabled())) return null;
   try {
     const result = await saveRiskStateFn({ data: { userId, state } });
     if (!result.ok) {

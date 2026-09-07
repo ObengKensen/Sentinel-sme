@@ -1,42 +1,36 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
-import { getAuthBackendStatusFn, listAccountsFn } from "@/lib/api/account.functions";
-import { loadAllSmeRiskStatesFn } from "@/lib/api/risk-data.functions";
+import { describe, expect, it, beforeEach } from "vitest";
 import { adminStore } from "./admin-store";
 import { registerUser, resetAuthModuleState, updateUserStatus } from "./auth";
 import { resetRemoteAuthCache } from "./remote-auth";
 import { type State } from "./risk-store";
+import { setMockRiskState, upsertMockAccount } from "@/test/mocks/memory-db";
 
 function seedUserState(userId: string, state: Partial<State>) {
-  localStorage.setItem(
-    `srs:state:v1:${userId}`,
-    JSON.stringify({
-      profile: {
-        businessName: "Acme Corp",
-        ownerName: "Jane Doe",
-        email: "sme@test.com",
-        phone: "",
-        businessType: "Retail",
-        employees: 5,
-        ...(state.profile ?? {}),
-      },
-      financial: state.financial ?? [],
-      cyber: state.cyber ?? [],
-      compliance: state.compliance ?? [],
-      operational: state.operational ?? [],
-      alerts: state.alerts ?? [],
-    }),
-  );
+  const next = {
+    profile: {
+      businessName: "Acme Corp",
+      ownerName: "Jane Doe",
+      email: "sme@test.com",
+      phone: "",
+      businessType: "Retail",
+      employees: 5,
+      ...(state.profile ?? {}),
+    },
+    financial: state.financial ?? [],
+    cyber: state.cyber ?? [],
+    compliance: state.compliance ?? [],
+    operational: state.operational ?? [],
+    alerts: state.alerts ?? [],
+  };
+  localStorage.setItem(`srs:state:v1:${userId}`, JSON.stringify(next));
+  setMockRiskState(userId, next);
 }
 
 describe("admin-store dashboard metrics", () => {
   beforeEach(() => {
     resetAuthModuleState();
     localStorage.clear();
-    vi.mocked(getAuthBackendStatusFn).mockResolvedValue({
-      available: false,
-      mode: "none",
-    });
-    vi.mocked(listAccountsFn).mockResolvedValue({ accounts: [] });
+    resetRemoteAuthCache();
   });
 
   it("returns empty metrics when no SMEs exist", () => {
@@ -257,28 +251,34 @@ describe("admin-store dashboard metrics", () => {
   });
 
   it("shows SMEs registered on another device after refresh", async () => {
-    vi.mocked(getAuthBackendStatusFn).mockResolvedValueOnce({
-      available: true,
-      mode: "shared-file",
+    upsertMockAccount({
+      id: "11111111-1111-4111-8111-111111111111",
+      email: "mobile-sme@test.com",
+      password: "password1",
+      role: "SME_OWNER",
+      status: "active",
+      createdAt: "2026-09-03T00:00:00.000Z",
+      businessName: "Phone Shop",
+      ownerName: "Ama Mensah",
+      phone: "",
+      businessType: "Retail",
+      employees: 2,
     });
-    vi.mocked(listAccountsFn).mockResolvedValue({
-      accounts: [
-        {
-          id: "11111111-1111-4111-8111-111111111111",
-          email: "mobile-sme@test.com",
-          role: "SME_OWNER",
-          status: "active",
-          createdAt: "2026-09-03T00:00:00.000Z",
-          businessName: "Phone Shop",
-          ownerName: "Ama Mensah",
-          phone: "",
-          businessType: "Retail",
-          employees: 2,
-        },
-      ],
+    setMockRiskState("11111111-1111-4111-8111-111111111111", {
+      profile: {
+        businessName: "Phone Shop",
+        ownerName: "Ama Mensah",
+        email: "mobile-sme@test.com",
+        phone: "",
+        businessType: "Retail",
+        employees: 2,
+      },
+      financial: [],
+      cyber: [],
+      compliance: [],
+      operational: [],
+      alerts: [],
     });
-    vi.mocked(loadAllSmeRiskStatesFn).mockResolvedValue({ states: {} });
-    resetRemoteAuthCache();
 
     adminStore.refresh();
 

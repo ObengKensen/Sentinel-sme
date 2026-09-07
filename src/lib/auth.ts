@@ -12,7 +12,6 @@ import {
   directoryRowFromRemote,
   fetchRemoteAccount,
   fetchRemoteAccounts,
-  isRemoteAuthEnabled,
   readTokenSession,
   remoteChangePassword,
   remoteLogin,
@@ -58,8 +57,6 @@ export const EMAIL_ALREADY_EXISTS_ERROR =
 
 export const ORPHANED_PROFILE_ERROR =
   "An account with this email already exists but needs to be restored. Use Forgot password to regain access.";
-
-const uid = () => Math.random().toString(36).slice(2, 10);
 
 let memorySession: AuthSession | null = null;
 let hydratePromise: Promise<boolean> | null = null;
@@ -396,10 +393,7 @@ export function getEmailRegistrationConflict(email: string): EmailRegistrationCo
 export async function resolveEmailRegistrationConflict(
   email: string,
 ): Promise<EmailRegistrationConflict | null> {
-  if (await isRemoteAuthEnabled()) {
-    return checkRemoteEmailConflict(email);
-  }
-  return getEmailRegistrationConflict(email);
+  return checkRemoteEmailConflict(email);
 }
 
 /** Case-insensitive check against all stored accounts (including portal operator). */
@@ -437,7 +431,6 @@ function upsertDirectoryAccount(account: UserAccount) {
 /** Pull account directory from the shared store into the local mirror used by admin views. */
 export async function syncRemoteUserDirectory(): Promise<void> {
   if (typeof window === "undefined") return;
-  if (!(await isRemoteAuthEnabled())) return;
   const accounts = await fetchRemoteAccounts();
   await readModifyWriteUsers(
     () => accounts.map((account) => directoryRowFromRemote(account)),
@@ -447,35 +440,8 @@ export async function syncRemoteUserDirectory(): Promise<void> {
 
 export async function seedSuperAdmin(): Promise<void> {
   if (typeof window === "undefined") return;
-
-  if (await isRemoteAuthEnabled()) {
-    await seedRemoteSuperAdmin();
-    await syncRemoteUserDirectory();
-    return;
-  }
-
-  migrateAndRepairUserStore();
-  if (loadUsers().some((u) => emailsMatch(u.email, SUPER_ADMIN_EMAIL))) return;
-
-  const salt = randomSalt();
-  const passwordHash = await hashPassword(SUPER_ADMIN_PASSWORD, salt);
-
-  // Re-read after async work so concurrent register/login writes are not clobbered.
-  await readModifyWriteUsers((users) => {
-    if (users.some((u) => emailsMatch(u.email, SUPER_ADMIN_EMAIL))) return users;
-    return [
-      ...users,
-      {
-        id: "super-admin",
-        email: SUPER_ADMIN_EMAIL,
-        passwordHash,
-        salt,
-        createdAt: new Date().toISOString(),
-        role: "SUPER_ADMIN",
-        status: "active",
-      },
-    ];
-  });
+  await seedRemoteSuperAdmin();
+  await syncRemoteUserDirectory();
 }
 
 export function ensureSeeded(): Promise<void> {
@@ -650,17 +616,12 @@ export async function hydrateAuth(): Promise<boolean> {
     }
 
     if (!user) {
-      if (await isRemoteAuthEnabled()) {
-        const remote = await fetchRemoteAccount(result.userId);
-        if (!remote || remote.status === "suspended") {
-          clearSession();
-          return false;
-        }
-        await upsertDirectoryAccount(directoryRowFromRemote(remote));
-      } else {
+      const remote = await fetchRemoteAccount(result.userId);
+      if (!remote || remote.status === "suspended") {
         clearSession();
         return false;
       }
+      await upsertDirectoryAccount(directoryRowFromRemote(remote));
     }
 
     if (result.expiresAt - Date.now() < JWT_REFRESH_THRESHOLD_MS) {
@@ -698,65 +659,42 @@ export async function registerUser(
   const normalized = normalizeEmail(email);
   if (password.length < 6) return { ok: false, error: "Password must be at least 6 characters." };
 
-  if (await isRemoteAuthEnabled()) {
-    if (!profile) {
-      return { ok: false, error: "Business profile is required to create an account." };
-    }
-    const remote = await remoteRegister({
-      email: normalized,
-      password,
-      businessName: profile.businessName,
-      ownerName: profile.ownerName,
-      phone: profile.phone,
-      businessType: profile.businessType,
-      employees: profile.employees,
-    });
-    if (!remote.ok) return remote;
-    if (!("token" in remote)) return { ok: false, error: "Could not create account." };
+  const registerProfile = profile ?? {
+    businessName: normalized.split("@")[0] || "Business",
+    ownerName: normalized.split("@")[0] || "Owner",
+    phone: "",
+    businessType: "Other",
+    employees: 1,
+  };
+  const remote = await remoteRegister({
+    email: normalized,
+    password,
+    businessName: registerProfile.businessName,
+    ownerName: registerProfile.ownerName,
+    phone: registerProfile.phone,
+    businessType: registerProfile.businessType,
+    employees: registerProfile.employees,
+  });
+  if (!remote.ok) return remote;
+  if (!("token" in remote)) return { ok: false, error: "Could not create account." };
 
-    await upsertDirectoryAccount(
-      directoryRowFromRemote({
-        id: remote.userId,
-        email: remote.email,
-        role: remote.role,
-        status: remote.status,
-        createdAt: remote.createdAt,
-      }),
-    );
-    await applyIssuedToken(remote.token);
-    return {
-      ok: true,
-      userId: remote.userId,
+  await upsertDirectoryAccount(
+    directoryRowFromRemote({
+      id: remote.userId,
       email: remote.email,
       role: remote.role,
-      profile: remote.profile,
-    };
-  }
-
-  const conflict = getEmailRegistrationConflict(normalized);
-  if (conflict === "exists") return { ok: false, error: EMAIL_ALREADY_EXISTS_ERROR };
-  if (conflict === "orphaned") return { ok: false, error: ORPHANED_PROFILE_ERROR };
-
-  const salt = randomSalt();
-  const passwordHash = await hashPassword(password, salt);
-
-  // Re-read after async work so concurrent register writes are not duplicated.
-  const recheck = getEmailRegistrationConflict(normalized);
-  if (recheck === "exists") return { ok: false, error: EMAIL_ALREADY_EXISTS_ERROR };
-  if (recheck === "orphaned") return { ok: false, error: ORPHANED_PROFILE_ERROR };
-
-  const user: UserAccount = {
-    id: uid(),
-    email: normalized,
-    passwordHash,
-    salt,
-    createdAt: new Date().toISOString(),
-    role: "SME_OWNER",
-    status: "active",
+      status: remote.status,
+      createdAt: remote.createdAt,
+    }),
+  );
+  await applyIssuedToken(remote.token);
+  return {
+    ok: true,
+    userId: remote.userId,
+    email: remote.email,
+    role: remote.role,
+    profile: remote.profile,
   };
-  await readModifyWriteUsers((users) => [...users, user]);
-  await establishSession(user.id, user.email, user.role);
-  return { ok: true, userId: user.id, email: user.email, role: user.role };
 }
 
 function readLocalProfileForUser(userId: string, email: string): RegisterProfileInput {
@@ -853,39 +791,29 @@ export async function loginUser(
   await ensureSeeded();
   const normalized = normalizeEmail(email);
 
-  if (await isRemoteAuthEnabled()) {
-    const remote = await remoteLogin(normalized, password);
-    if (remote.ok && "token" in remote) {
-      return applyRemoteLoginSuccess(remote);
-    }
-
-    // Account may still exist only in this browser from before shared auth.
-    const local = await loginAgainstLocalDirectory(normalized, password);
-    if (local?.ok) {
-      const promoted = await remoteRegister({
-        email: normalized,
-        password,
-        ...readLocalProfileForUser(local.userId, normalized),
-      });
-      if (promoted.ok && "token" in promoted) {
-        return applyRemoteLoginSuccess(promoted);
-      }
-      if (!promoted.ok && promoted.error === EMAIL_ALREADY_EXISTS_ERROR) {
-        const retry = await remoteLogin(normalized, password);
-        if (retry.ok && "token" in retry) return applyRemoteLoginSuccess(retry);
-      }
-      return local;
-    }
-
-    if (!remote.ok) return remote;
-    return { ok: false, error: "Invalid email or password." };
+  const remote = await remoteLogin(normalized, password);
+  if (remote.ok && "token" in remote) {
+    return applyRemoteLoginSuccess(remote);
   }
 
+  // One-time promotion of leftover browser-only accounts into Postgres.
   const local = await loginAgainstLocalDirectory(normalized, password);
-  if (local) return local;
-  if (hasOrphanedProfileForEmail(normalized)) {
-    return { ok: false, error: ORPHANED_PROFILE_ERROR };
+  if (local?.ok) {
+    const promoted = await remoteRegister({
+      email: normalized,
+      password,
+      ...readLocalProfileForUser(local.userId, normalized),
+    });
+    if (promoted.ok && "token" in promoted) {
+      return applyRemoteLoginSuccess(promoted);
+    }
+    if (!promoted.ok && promoted.error === EMAIL_ALREADY_EXISTS_ERROR) {
+      const retry = await remoteLogin(normalized, password);
+      if (retry.ok && "token" in retry) return applyRemoteLoginSuccess(retry);
+    }
   }
+
+  if (!remote.ok) return remote;
   return { ok: false, error: "Invalid email or password." };
 }
 
@@ -895,32 +823,7 @@ export async function resetPassword(email: string, newPassword: string): Promise
   if (newPassword.length < 6)
     return { ok: false, error: "Password must be at least 6 characters." };
 
-  if (await isRemoteAuthEnabled()) {
-    return remoteResetPassword(normalized, newPassword);
-  }
-
-  const match = dedupeUsersByEmail(findUsersByEmail(normalized))[0];
-  if (!match) {
-    const recovered = await recoverAuthFromOrphanedProfile(normalized, newPassword);
-    if (recovered) return recovered;
-    return { ok: false, error: "No account found with that email." };
-  }
-
-  const matchId = match.id;
-  const updated = loadUsers().find((u) => u.id === matchId);
-  if (!updated) {
-    const recovered = await recoverAuthFromOrphanedProfile(normalized, newPassword);
-    if (recovered) return recovered;
-    return { ok: false, error: "No account found with that email." };
-  }
-
-  const salt = randomSalt();
-  const passwordHash = await hashPassword(newPassword, salt);
-  await readModifyWriteUsers((users) =>
-    users.map((u) => (u.id === matchId ? { ...u, salt, passwordHash } : u)),
-  );
-  await collapseDuplicatesForEmail(normalized, matchId);
-  return { ok: true, userId: updated.id, email: updated.email, role: updated.role };
+  return remoteResetPassword(normalized, newPassword);
 }
 
 export async function changePassword(
@@ -931,79 +834,32 @@ export async function changePassword(
   if (newPassword.length < 6)
     return { ok: false, error: "New password must be at least 6 characters." };
 
-  if (await isRemoteAuthEnabled()) {
-    return remoteChangePassword(userId, currentPassword, newPassword);
-  }
-
-  const user = loadUsers().find((u) => u.id === userId);
-  if (!user) return { ok: false, error: "Account not found." };
-
-  const currentHash = await hashPassword(currentPassword, user.salt);
-  if (currentHash !== user.passwordHash) {
-    return { ok: false, error: "Current password is incorrect." };
-  }
-
-  const salt = randomSalt();
-  const passwordHash = await hashPassword(newPassword, salt);
-  await readModifyWriteUsers((users) =>
-    users.map((u) => (u.id === userId ? { ...u, salt, passwordHash } : u)),
-  );
-  return { ok: true, userId: user.id, email: user.email, role: user.role };
+  return remoteChangePassword(userId, currentPassword, newPassword);
 }
 
 export async function updateUserEmail(userId: string, email: string): Promise<AuthResult> {
   const normalized = normalizeEmail(email);
 
-  if (await isRemoteAuthEnabled()) {
-    const result = await remoteUpdateEmail(userId, normalized);
-    if (!result.ok) return result;
-    const user = getUserById(userId);
-    if (user) {
-      await upsertDirectoryAccount({ ...user, email: normalized });
-    }
-    const session = getSession();
-    if (session?.userId === userId) {
-      await establishSession(userId, normalized, result.role);
-    }
-    return result;
+  const result = await remoteUpdateEmail(userId, normalized);
+  if (!result.ok) return result;
+  const user = getUserById(userId);
+  if (user) {
+    await upsertDirectoryAccount({ ...user, email: normalized });
   }
-
-  const user = loadUsers().find((u) => u.id === userId);
-  if (!user) return { ok: false, error: "Account not found." };
-
-  const conflict = getEmailRegistrationConflict(normalized);
-  if (conflict && !emailsMatch(user.email, normalized)) {
-    return { ok: false, error: "That email is already in use." };
-  }
-
-  await readModifyWriteUsers((users) =>
-    users.map((u) => (u.id === userId ? { ...u, email: normalized } : u)),
-  );
-
   const session = getSession();
   if (session?.userId === userId) {
-    await establishSession(userId, normalized, user.role);
+    await establishSession(userId, normalized, result.role);
   }
-
-  return { ok: true, userId: user.id, email: normalized, role: user.role };
+  return result;
 }
 
 export async function updateUserStatus(userId: string, status: UserStatus): Promise<AuthResult> {
-  if (await isRemoteAuthEnabled()) {
-    const result = await remoteUpdateStatus(userId, status);
-    if (result.ok) {
-      const user = getUserById(userId);
-      if (user) await upsertDirectoryAccount({ ...user, status });
-    }
-    return result;
+  const result = await remoteUpdateStatus(userId, status);
+  if (result.ok) {
+    const user = getUserById(userId);
+    if (user) await upsertDirectoryAccount({ ...user, status });
   }
-
-  const user = loadUsers().find((u) => u.id === userId);
-  if (!user) return { ok: false, error: "Account not found." };
-  if (user.role === "SUPER_ADMIN") return { ok: false, error: "Cannot change super admin status." };
-
-  await readModifyWriteUsers((users) => users.map((u) => (u.id === userId ? { ...u, status } : u)));
-  return { ok: true, userId: user.id, email: user.email, role: user.role };
+  return result;
 }
 
 /** Reset in-memory auth module state after a full data wipe. */

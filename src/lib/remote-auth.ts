@@ -72,13 +72,11 @@ export async function isRemoteAuthEnabled(): Promise<boolean> {
 }
 
 export async function seedRemoteSuperAdmin(): Promise<boolean> {
-  if (!(await isRemoteAuthEnabled())) return false;
   const result = await seedSuperAdminAccountFn();
   return result.ok;
 }
 
 export async function checkRemoteEmailConflict(email: string): Promise<"exists" | null> {
-  if (!(await isRemoteAuthEnabled())) return null;
   const result = await checkEmailAvailableFn({ data: { email } });
   return result.conflict;
 }
@@ -92,9 +90,6 @@ export async function remoteRegister(input: {
   businessType: string;
   employees: number;
 }): Promise<RemoteAuthSuccess | AuthResult> {
-  if (!(await isRemoteAuthEnabled())) {
-    return { ok: false, error: "Database not configured." };
-  }
   return registerAccountFn({ data: input });
 }
 
@@ -102,16 +97,10 @@ export async function remoteLogin(
   email: string,
   password: string,
 ): Promise<RemoteAuthSuccess | AuthResult> {
-  if (!(await isRemoteAuthEnabled())) {
-    return { ok: false, error: "Database not configured." };
-  }
   return loginAccountFn({ data: { email, password } });
 }
 
 export async function remoteResetPassword(email: string, newPassword: string): Promise<AuthResult> {
-  if (!(await isRemoteAuthEnabled())) {
-    return { ok: false, error: "Database not configured." };
-  }
   return resetAccountPasswordFn({ data: { email, newPassword } });
 }
 
@@ -120,23 +109,14 @@ export async function remoteChangePassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<AuthResult> {
-  if (!(await isRemoteAuthEnabled())) {
-    return { ok: false, error: "Database not configured." };
-  }
   return changeAccountPasswordFn({ data: { userId, currentPassword, newPassword } });
 }
 
 export async function remoteUpdateEmail(userId: string, email: string): Promise<AuthResult> {
-  if (!(await isRemoteAuthEnabled())) {
-    return { ok: false, error: "Database not configured." };
-  }
   return updateAccountEmailFn({ data: { userId, email } });
 }
 
 export async function remoteUpdateStatus(userId: string, status: UserStatus): Promise<AuthResult> {
-  if (!(await isRemoteAuthEnabled())) {
-    return { ok: false, error: "Database not configured." };
-  }
   return updateAccountStatusFn({ data: { userId, status } });
 }
 
@@ -154,13 +134,11 @@ export type RemoteDirectoryAccount = {
 };
 
 export async function fetchRemoteAccounts(): Promise<RemoteDirectoryAccount[]> {
-  if (!(await isRemoteAuthEnabled())) return [];
   const result = await listAccountsFn();
   return result.accounts;
 }
 
 export async function fetchRemoteAccount(userId: string) {
-  if (!(await isRemoteAuthEnabled())) return null;
   const result = await getAccountByIdFn({ data: { userId } });
   return result.account;
 }

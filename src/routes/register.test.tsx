@@ -93,7 +93,7 @@ describe("RegisterPage", () => {
     });
   });
 
-  it("shows orphaned profile recovery message for email without auth user", async () => {
+  it("creates an account even if leftover local profile data exists", async () => {
     const userId = "orphan-register-user";
     localStorage.setItem(
       `srs:state:v1:${userId}`,
@@ -123,11 +123,8 @@ describe("RegisterPage", () => {
     await user.type(getFieldInput("Confirm Password"), "password1");
     await user.click(screen.getByRole("button", { name: "Create account" }));
     await waitFor(() => {
-      expect(screen.getByText(/needs to be restored/i)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "Forgot password" })).toHaveAttribute(
-        "href",
-        "/forgot-password",
-      );
+      expect(toast.success).toHaveBeenCalledWith("Account created. Welcome to Risk Sentinel!");
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app/dashboard" });
     });
   });
 

@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
+import { resetMemoryDb } from "./mocks/memory-db";
 import { routerState } from "./mocks/tanstack-router-state";
 
 vi.mock("@tanstack/react-router", async () => {
@@ -62,6 +63,7 @@ beforeEach(() => {
   routerState.pathname = "/app/dashboard";
   localStorage.clear();
   sessionStorage.clear();
+  resetMemoryDb();
 });
 
 afterEach(() => {

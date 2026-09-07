@@ -1,5 +1,7 @@
 import process from "node:process";
 
+import { getDatabaseUrl } from "./db.server";
+
 // Server-only config. The .server.ts suffix keeps Vite out of bundling
 // this file into the client — values here never reach the browser.
 //
@@ -42,7 +44,7 @@ export function getServerConfig() {
   return {
     nodeEnv: process.env.NODE_ENV,
     jwtSecretConfigured: Boolean(process.env.JWT_SECRET),
-    databaseConfigured: Boolean(process.env.DATABASE_URL?.trim()),
+    databaseConfigured: Boolean(getDatabaseUrl()),
     smtpConfigured: Boolean(
       process.env.SMTP_HOST &&
         process.env.SMTP_USER &&
