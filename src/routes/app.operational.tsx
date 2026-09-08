@@ -10,7 +10,7 @@ import { RiskCard } from "@/components/RiskCard";
 import { operationalRisk, store, useStore } from "@/lib/risk-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/operational")({ component: Page });
+export const Route = createFileRoute("/app/operational")({ component: OperationalPage });
 
 function parseStaffInput(value: string): { value: string; hasInvalid: boolean } {
   let hasInvalid = false;
@@ -27,7 +27,7 @@ function parseStaffInput(value: string): { value: string; hasInvalid: boolean } 
   return { value: result, hasInvalid };
 }
 
-function Page() {
+export function OperationalPage() {
   const state = useStore((s) => s);
   const risk = operationalRisk(state);
   const latest = state.operational.at(-1);

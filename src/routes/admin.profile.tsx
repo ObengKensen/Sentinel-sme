@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/profile")({ component: AdminProfile });
 
-function AdminProfile() {
+export function AdminProfile() {
   const profile = useStore((s) => s.profile);
   const [form, setForm] = useState({
     ownerName: profile.ownerName,

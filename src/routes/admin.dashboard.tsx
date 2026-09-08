@@ -34,7 +34,7 @@ const colors = [
   "var(--color-chart-4)",
 ];
 
-function AdminDashboard() {
+export function AdminDashboard() {
   const { metrics, riskDistribution, registrationTrends, alertTrends, categoryDistribution } =
     useAdminStore((d) => d);
 

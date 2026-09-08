@@ -35,7 +35,7 @@ describe("AppSidebar", () => {
     const user = userEvent.setup({ delay: null });
     renderWithProviders(<AppSidebar />);
     await user.click(screen.getByText("Logout"));
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/login" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
     expect(store.isAuthed()).toBe(false);
   });
 });

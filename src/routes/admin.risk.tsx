@@ -16,7 +16,7 @@ import { severityColor } from "@/lib/risk-store";
 
 export const Route = createFileRoute("/admin/risk")({ component: SystemRiskMonitoring });
 
-function SystemRiskMonitoring() {
+export function SystemRiskMonitoring() {
   const { riskAggregation } = useAdminStore((d) => d);
 
   const categories = [

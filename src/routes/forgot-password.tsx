@@ -1,4 +1,5 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { PublicViewLink, useHideNamedPublicPath } from "@/components/WorkspaceLink";
 import { useState } from "react";
 import { Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { CsrfTokenField } from "@/components/CsrfTokenField";
@@ -13,13 +14,14 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/forgot-password")({
   beforeLoad: async () => {
     await hydrateAuth();
-    if (isAuthenticated()) throw redirect({ to: "/app/dashboard" });
+    if (isAuthenticated()) throw redirect({ to: "/app" });
   },
-  head: () => ({ meta: [{ title: "Reset Password — Risk Sentinel" }] }),
+  head: () => ({ meta: [{ title: "Risk Sentinel" }] }),
   component: ForgotPasswordPage,
 });
 
-function ForgotPasswordPage() {
+export function ForgotPasswordPage() {
+  useHideNamedPublicPath("forgot-password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -55,9 +57,9 @@ function ForgotPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-secondary/40">
       <Card className="w-full max-w-md p-5 sm:p-8">
-        <Link to="/" className="font-montserrat text-2xl inline-block font-bold mb-6">
+        <PublicViewLink view="landing" className="font-montserrat text-2xl inline-block font-bold mb-6">
           Risk Sentinel
-        </Link>
+        </PublicViewLink>
 
         {done ? (
           <div className="text-center">
@@ -66,7 +68,7 @@ function ForgotPasswordPage() {
               Your password has been updated successfully.
             </p>
             <Button asChild className="mt-6 w-full">
-              <Link to="/login">Back to login</Link>
+              <PublicViewLink view="login">Back to login</PublicViewLink>
             </Button>
           </div>
         ) : (
@@ -130,12 +132,12 @@ function ForgotPasswordPage() {
           </>
         )}
 
-        <Link
-          to="/login"
+        <PublicViewLink
+          view="login"
           className="mt-6 flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> Back to login
-        </Link>
+        </PublicViewLink>
       </Card>
     </div>
   );

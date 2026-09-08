@@ -1,4 +1,4 @@
-import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { LayoutDashboard, Building2, ShieldAlert, FileBarChart2, User, LogOut } from "lucide-react";
 import {
   Sidebar,
@@ -12,23 +12,26 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { AdminPageLink } from "@/components/WorkspaceLink";
 import { store } from "@/lib/risk-store";
+import { setPublicView, useAdminPage, type AdminPageId } from "@/lib/app-nav";
 
-const items = [
-  { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
-  { title: "SME Management", url: "/admin/smes", icon: Building2 },
-  { title: "Risk Monitoring", url: "/admin/risk", icon: ShieldAlert },
-  { title: "Reports", url: "/admin/reports", icon: FileBarChart2 },
-  { title: "Profile", url: "/admin/profile", icon: User },
+const items: { title: string; page: AdminPageId; icon: typeof LayoutDashboard }[] = [
+  { title: "Dashboard", page: "dashboard", icon: LayoutDashboard },
+  { title: "SME Management", page: "smes", icon: Building2 },
+  { title: "Risk Monitoring", page: "risk", icon: ShieldAlert },
+  { title: "Reports", page: "reports", icon: FileBarChart2 },
+  { title: "Profile", page: "profile", icon: User },
 ];
 
 export function AdminSidebar() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const page = useAdminPage();
   const router = useRouter();
 
   const onLogout = () => {
     store.logout();
-    router.navigate({ to: "/login" });
+    setPublicView("login");
+    router.navigate({ to: "/" });
   };
 
   return (
@@ -52,16 +55,14 @@ export function AdminSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const active =
-                  pathname === item.url ||
-                  (item.url === "/admin/dashboard" && pathname === "/admin");
+                const active = page === item.page;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                      <Link to={item.url} activeOptions={{ exact: true }}>
+                      <AdminPageLink page={item.page}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </Link>
+                      </AdminPageLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

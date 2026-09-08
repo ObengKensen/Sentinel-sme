@@ -10,9 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { store, useStore } from "@/lib/risk-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/profile")({ component: Page });
+export const Route = createFileRoute("/app/profile")({ component: ProfilePage });
 
-function Page() {
+export function ProfilePage() {
   const profile = useStore((s) => s.profile);
   const [form, setForm] = useState(profile);
   const [saving, setSaving] = useState(false);

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect, useRouter, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { CsrfTokenField } from "@/components/CsrfTokenField";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { PublicViewLink, useHideNamedPublicPath } from "@/components/WorkspaceLink";
+import { setAdminPage, setAppPage } from "@/lib/app-nav";
 import { consumePostLogoutLoginVisit, isPostLogoutLoginVisit, store } from "@/lib/risk-store";
 import {
   clearSession,
@@ -26,19 +28,17 @@ export const Route = createFileRoute("/login")({
     }
     await hydrateAuth();
     if (isAuthenticated()) {
-      if (isSuperAdmin()) throw redirect({ to: "/admin/dashboard" });
-      throw redirect({ to: "/app/dashboard" });
+      if (isSuperAdmin()) throw redirect({ to: "/admin" });
+      throw redirect({ to: "/app" });
     }
   },
-  head: () => ({ meta: [{ title: "Login — Risk Sentinel" }] }),
+  head: () => ({ meta: [{ title: "Risk Sentinel" }] }),
   component: LoginPage,
 });
 
-function LoginPage() {
+export function LoginPage() {
   const router = useRouter();
-  const loginVisitKey = useRouterState({
-    select: (s) => (s.location.pathname === "/login" ? s.location.href : ""),
-  });
+  useHideNamedPublicPath("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,12 +46,12 @@ function LoginPage() {
   const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
-    if (!loginVisitKey || !consumePostLogoutLoginVisit()) return;
+    if (!consumePostLogoutLoginVisit()) return;
     setEmail("");
     setPassword("");
     setShowPassword(false);
     setFormKey((k) => k + 1);
-  }, [loginVisitKey]);
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,9 +64,11 @@ function LoginPage() {
       }
       toast.success("Welcome back!");
       if (result.role === "SUPER_ADMIN") {
-        router.navigate({ to: "/admin/dashboard" });
+        setAdminPage("dashboard");
+        router.navigate({ to: "/admin" });
       } else {
-        router.navigate({ to: "/app/dashboard" });
+        setAppPage("dashboard");
+        router.navigate({ to: "/app" });
       }
     } catch (error) {
       toast.error(
@@ -90,9 +92,9 @@ function LoginPage() {
           className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/85 via-primary/80 to-primary/90"
           aria-hidden="true"
         />
-        <Link to="/" className="relative z-10 font-montserrat text-2xl font-bold">
+        <PublicViewLink view="landing" className="relative z-10 font-montserrat text-2xl font-bold">
           Risk Sentinel
-        </Link>
+        </PublicViewLink>
         <div className="relative z-10">
           <h2 className="text-3xl font-semibold leading-tight">
             Stay one step ahead of business risk.
@@ -135,9 +137,12 @@ function LoginPage() {
               />
             </div>
             <div className="flex items-center justify-between text-sm">
-              <Link to="/forgot-password" className="text-muted-foreground hover:text-foreground">
+              <PublicViewLink
+                view="forgot-password"
+                className="text-muted-foreground hover:text-foreground"
+              >
                 Forgot password?
-              </Link>
+              </PublicViewLink>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
@@ -150,9 +155,9 @@ function LoginPage() {
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               No account?{" "}
-              <Link to="/register" className="text-primary font-medium">
+              <PublicViewLink view="register" className="text-primary font-medium">
                 Register
-              </Link>
+              </PublicViewLink>
             </p>
           </form>
         </Card>

@@ -10,7 +10,7 @@ import { RiskCard } from "@/components/RiskCard";
 import { financialRisk, hasFinancialData, store, useStore } from "@/lib/risk-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/financial")({ component: Page });
+export const Route = createFileRoute("/app/financial")({ component: FinancialPage });
 
 function parseFinancialInput(value: string): { value: string; hasInvalid: boolean } {
   let hasInvalid = false;
@@ -31,7 +31,7 @@ function parseFinancialInput(value: string): { value: string; hasInvalid: boolea
   return { value: result, hasInvalid };
 }
 
-function Page() {
+export function FinancialPage() {
   const state = useStore((s) => s);
   const risk = financialRisk(state);
   const [form, setForm] = useState({ income: "", expenses: "", outstanding: "" });

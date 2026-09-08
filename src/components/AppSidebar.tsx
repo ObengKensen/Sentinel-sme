@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Wallet,
@@ -25,22 +25,24 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { AppPageLink } from "@/components/WorkspaceLink";
 import { store, useStore } from "@/lib/risk-store";
+import { setPublicView, useAppPage, type AppPageId } from "@/lib/app-nav";
 
-const items = [
-  { title: "Dashboard", url: "/app/dashboard", icon: LayoutDashboard },
-  { title: "Financial", url: "/app/financial", icon: Wallet },
-  { title: "Cybersecurity", url: "/app/cybersecurity", icon: ShieldCheck },
-  { title: "Compliance", url: "/app/compliance", icon: FileCheck2 },
-  { title: "Operational", url: "/app/operational", icon: Cog },
-  { title: "Alerts", url: "/app/alerts", icon: Bell },
-  { title: "Reports", url: "/app/reports", icon: FileBarChart2 },
-  { title: "Risk History", url: "/app/history", icon: History },
-  { title: "Profile", url: "/app/profile", icon: User },
+const items: { title: string; page: AppPageId; icon: typeof LayoutDashboard }[] = [
+  { title: "Dashboard", page: "dashboard", icon: LayoutDashboard },
+  { title: "Financial", page: "financial", icon: Wallet },
+  { title: "Cybersecurity", page: "cybersecurity", icon: ShieldCheck },
+  { title: "Compliance", page: "compliance", icon: FileCheck2 },
+  { title: "Operational", page: "operational", icon: Cog },
+  { title: "Alerts", page: "alerts", icon: Bell },
+  { title: "Reports", page: "reports", icon: FileBarChart2 },
+  { title: "Risk History", page: "history", icon: History },
+  { title: "Profile", page: "profile", icon: User },
 ];
 
 export function AppSidebar() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const page = useAppPage();
   const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
   const alerts = useStore((s) => s.alerts.filter((a) => a.status === "active").length);
@@ -51,11 +53,12 @@ export function AppSidebar() {
 
   useEffect(() => {
     setOpenMobile(false);
-  }, [pathname, setOpenMobile]);
+  }, [page, setOpenMobile]);
 
   const onLogout = () => {
     store.logout();
-    router.navigate({ to: "/login" });
+    setPublicView("login");
+    router.navigate({ to: "/" });
   };
 
   return (
@@ -81,11 +84,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
-                const active = pathname === item.url;
+                const active = page === item.page;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                      <Link to={item.url} activeOptions={{ exact: true }} onClick={closeMobileNav}>
+                      <AppPageLink page={item.page} onClick={closeMobileNav}>
                         <item.icon />
                         <span>{item.title}</span>
                         {item.title === "Alerts" && alerts > 0 && (
@@ -93,7 +96,7 @@ export function AppSidebar() {
                             {alerts}
                           </span>
                         )}
-                      </Link>
+                      </AppPageLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

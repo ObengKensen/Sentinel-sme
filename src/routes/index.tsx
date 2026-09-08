@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { PublicViewLink } from "@/components/WorkspaceLink";
+import { usePublicView } from "@/lib/app-nav";
+import { LoginPage } from "./login";
+import { RegisterPage } from "./register";
+import { ForgotPasswordPage } from "./forgot-password";
 import {
   ShieldAlert,
   Wallet,
@@ -53,21 +58,29 @@ function TriangleIconBadge({
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SME Risk Sentinel — Early Detection of Business Risks" },
+      { title: "Risk Sentinel" },
       {
         name: "description",
         content:
           "A rule-based decision support platform that helps SMEs detect financial, cybersecurity, compliance and operational risks early.",
       },
-      { property: "og:title", content: "SME Risk Sentinel" },
+      { property: "og:title", content: "Risk Sentinel" },
       {
         property: "og:description",
         content: "Detect SME business risks early with a clear, rule-based monitoring dashboard.",
       },
     ],
   }),
-  component: Landing,
+  component: PublicShell,
 });
+
+function PublicShell() {
+  const view = usePublicView();
+  if (view === "login") return <LoginPage />;
+  if (view === "register") return <RegisterPage />;
+  if (view === "forgot-password") return <ForgotPasswordPage />;
+  return <Landing />;
+}
 
 function Landing() {
   const featuresRef = useRef<HTMLDivElement>(null);
@@ -108,12 +121,12 @@ function Landing() {
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <header className="sticky top-0 z-50 border-b bg-background shadow-md">
         <div className="flex h-18 w-full min-w-0 items-center gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
-          <Link
-            to="/"
+          <PublicViewLink
+            view="landing"
             className="min-w-0 shrink font-montserrat text-xl font-extrabold tracking-tight sm:text-2xl lg:text-3xl"
           >
             Risk Sentinel
-          </Link>
+          </PublicViewLink>
           <nav className="hidden md:flex flex-1 items-center justify-center gap-7 text-base">
             <a
               href="#features"
@@ -136,10 +149,10 @@ function Landing() {
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3 md:ml-0">
             <Button variant="ghost" className="h-9 px-3 text-sm sm:h-10 sm:px-4 sm:text-base" asChild>
-              <Link to="/login">Login</Link>
+              <PublicViewLink view="login">Login</PublicViewLink>
             </Button>
             <Button className="h-9 px-3 text-sm sm:h-10 sm:px-5 sm:text-base" asChild>
-              <Link to="/register">Get started</Link>
+              <PublicViewLink view="register">Get started</PublicViewLink>
             </Button>
           </div>
         </div>
@@ -186,9 +199,9 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>
-              <Link to="/register">
+              <PublicViewLink view="register">
                 Start monitoring <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
+              </PublicViewLink>
             </Button>
           </div>
         </div>
@@ -317,18 +330,18 @@ function Landing() {
           <div>
             <div className="text-base font-semibold mb-2">Account</div>
             <div className="flex flex-col gap-1">
-              <Link
-                to="/login"
+              <PublicViewLink
+                view="login"
                 className="text-primary-foreground/75 hover:text-primary-foreground"
               >
                 Login
-              </Link>
-              <Link
-                to="/register"
+              </PublicViewLink>
+              <PublicViewLink
+                view="register"
                 className="text-primary-foreground/75 hover:text-primary-foreground"
               >
                 Register
-              </Link>
+              </PublicViewLink>
             </div>
           </div>
         </div>

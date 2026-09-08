@@ -26,11 +26,11 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/app/cybersecurity")({ component: Page });
+export const Route = createFileRoute("/app/cybersecurity")({ component: CybersecurityPage });
 
 type Step = "select" | "questions" | "result";
 
-function Page() {
+export function CybersecurityPage() {
   const state = useStore((s) => s);
   const risk = cyberRisk(state);
   const hasData = hasCyberData(state);

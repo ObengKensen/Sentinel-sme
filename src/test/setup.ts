@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
+import { resetAppNav } from "@/lib/app-nav";
 import { resetMemoryDb } from "./mocks/memory-db";
 import { routerState } from "./mocks/tanstack-router-state";
 
@@ -60,7 +61,8 @@ class IntersectionObserverMock {
 global.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
 
 beforeEach(() => {
-  routerState.pathname = "/app/dashboard";
+  routerState.pathname = "/app";
+  resetAppNav();
   localStorage.clear();
   sessionStorage.clear();
   resetMemoryDb();

@@ -14,11 +14,11 @@ import {
 } from "@/lib/risk-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/alerts")({ component: Page });
+export const Route = createFileRoute("/app/alerts")({ component: AlertsPage });
 
 type StatusFilter = "all" | AlertStatus;
 
-function Page() {
+export function AlertsPage() {
   const alerts = useStore((s) => s.alerts);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [cat, setCat] = useState<"all" | Category>("all");

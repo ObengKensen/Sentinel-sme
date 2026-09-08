@@ -2,6 +2,7 @@ import { render, screen, type RenderOptions } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { resetAppNav } from "@/lib/app-nav";
 import { resetAuthModuleState } from "@/lib/auth";
 import { resetStoreAfterDataWipe } from "@/lib/risk-store";
 import { mockNavigate } from "./mocks/tanstack-router-state";
@@ -21,6 +22,7 @@ export function resetTestState() {
   localStorage.clear();
   resetAuthModuleState();
   resetStoreAfterDataWipe();
+  resetAppNav();
   mockNavigate.mockClear();
 }
 

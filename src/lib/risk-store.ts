@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import type { AppPageId } from "./app-nav";
 import { notifyAlertCreated } from "./notification-service";
 import {
   clearSession,
@@ -809,11 +810,11 @@ export function useStore<T>(selector: (s: AppState) => T): T {
   );
 }
 
-export const categoryLinks: Record<Category, string> = {
-  financial: "/app/financial",
-  cybersecurity: "/app/cybersecurity",
-  compliance: "/app/compliance",
-  operational: "/app/operational",
+export const categoryLinks: Record<Category, AppPageId> = {
+  financial: "financial",
+  cybersecurity: "cybersecurity",
+  compliance: "compliance",
+  operational: "operational",
 };
 
 export type Recommendation = {
@@ -821,7 +822,7 @@ export type Recommendation = {
   title: string;
   action: string;
   category: Category;
-  href: string;
+  page: AppPageId;
 };
 
 const severityPriority: Record<Severity, number> = { high: 3, medium: 2, low: 1 };
@@ -835,7 +836,7 @@ export function getRecommendations(s: State | AppState, limit = 6): Recommendati
       title: alert.title,
       action: alert.action,
       category: alert.category,
-      href: categoryLinks[alert.category],
+      page: categoryLinks[alert.category],
     });
   }
 
@@ -871,7 +872,7 @@ export function getRecommendations(s: State | AppState, limit = 6): Recommendati
       title,
       action: hint,
       category,
-      href: categoryLinks[category],
+      page: categoryLinks[category],
     });
   }
 

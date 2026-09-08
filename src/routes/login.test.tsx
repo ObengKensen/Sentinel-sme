@@ -31,13 +31,13 @@ describe("login beforeLoad", () => {
 
   it("redirects authenticated SME users to the app dashboard", async () => {
     await registerUser("authed@test.com", "password1");
-    await expect(runLoginBeforeLoad()).rejects.toEqual({ to: "/app/dashboard" });
+    await expect(runLoginBeforeLoad()).rejects.toEqual({ to: "/app" });
   });
 
   it("redirects authenticated super admin to the admin dashboard", async () => {
     await seedSuperAdmin();
     await loginUser(SUPER_ADMIN_EMAIL, SUPER_ADMIN_PASSWORD);
-    await expect(runLoginBeforeLoad()).rejects.toEqual({ to: "/admin/dashboard" });
+    await expect(runLoginBeforeLoad()).rejects.toEqual({ to: "/admin" });
   });
 
   it("clears session on post-logout visit without redirecting", async () => {
@@ -91,7 +91,7 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Login" }));
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith("Welcome back!");
-      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app/dashboard" });
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app" });
     });
   });
 
@@ -106,7 +106,7 @@ describe("LoginPage", () => {
     await user.click(screen.getByRole("button", { name: "Login" }));
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith("Welcome back!");
-      expect(mockNavigate).toHaveBeenCalledWith({ to: "/admin/dashboard" });
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/admin" });
     });
   });
 

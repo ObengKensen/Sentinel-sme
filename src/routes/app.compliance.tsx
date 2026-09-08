@@ -11,7 +11,7 @@ import { RiskCard } from "@/components/RiskCard";
 import { complianceRisk, store, useStore, type ComplianceEntry } from "@/lib/risk-store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/app/compliance")({ component: Page });
+export const Route = createFileRoute("/app/compliance")({ component: CompliancePage });
 
 const daysUntil = (d: string) => Math.floor((new Date(d).getTime() - Date.now()) / 86400000);
 const isValidDate = (d: string) =>
@@ -143,7 +143,7 @@ function buildDeadlineGuidance(entry: ComplianceEntry): DeadlineGuidance[] {
   ].sort((a, b) => a.days - b.days);
 }
 
-function Page() {
+export function CompliancePage() {
   const state = useStore((s) => s);
   const risk = complianceRisk(state);
   const latest = state.compliance.at(-1);

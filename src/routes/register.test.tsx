@@ -124,7 +124,7 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith("Account created. Welcome to Risk Sentinel!");
-      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app/dashboard" });
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app" });
     });
   });
 
@@ -139,7 +139,7 @@ describe("RegisterPage", () => {
     await user.click(screen.getByRole("button", { name: "Create account" }));
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith("Account created. Welcome to Risk Sentinel!");
-      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app/dashboard" });
+      expect(mockNavigate).toHaveBeenCalledWith({ to: "/app" });
     });
   });
 });

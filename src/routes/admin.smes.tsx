@@ -25,7 +25,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/smes")({ component: SmeManagement });
 
-function SmeManagement() {
+export function SmeManagement() {
   const smes = useAdminStore((d) => d.smes);
   const [selected, setSelected] = useState<SmeRecord | null>(null);
   const [loading, setLoading] = useState<string | null>(null);

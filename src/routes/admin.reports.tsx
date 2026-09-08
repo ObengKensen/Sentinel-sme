@@ -36,7 +36,7 @@ function reportHeading(type: ReportType) {
   }
 }
 
-function AdminReports() {
+export function AdminReports() {
   const data = useAdminStore((d) => d);
   const [reportType, setReportType] = useState<ReportType>("system");
 

@@ -1,4 +1,5 @@
-import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { PublicViewLink, useHideNamedPublicPath } from "@/components/WorkspaceLink";
 import { useState } from "react";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { CsrfTokenField } from "@/components/CsrfTokenField";
@@ -8,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { adminStore } from "@/lib/admin-store";
+import { setAppPage } from "@/lib/app-nav";
 import { store } from "@/lib/risk-store";
 import {
   ensureSeeded,
@@ -35,15 +37,16 @@ export const Route = createFileRoute("/register")({
     await ensureSeeded();
     await hydrateAuth();
     if (isAuthenticated()) {
-      if (isSuperAdmin()) throw redirect({ to: "/admin/dashboard" });
-      throw redirect({ to: "/app/dashboard" });
+      if (isSuperAdmin()) throw redirect({ to: "/admin" });
+      throw redirect({ to: "/app" });
     }
   },
-  head: () => ({ meta: [{ title: "Register — Risk Sentinel" }] }),
+  head: () => ({ meta: [{ title: "Risk Sentinel" }] }),
   component: RegisterPage,
 });
 
-function RegisterPage() {
+export function RegisterPage() {
+  useHideNamedPublicPath("register");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -143,15 +146,19 @@ function RegisterPage() {
 
     adminStore.refresh();
     toast.success("Account created. Welcome to Risk Sentinel!");
-    router.navigate({ to: "/app/dashboard" });
+    setAppPage("dashboard");
+    router.navigate({ to: "/app" });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-secondary/40">
         <Card className="w-full max-w-2xl p-5 shadow-xl sm:p-8">
-        <Link to="/" className="font-montserrat text-2xl block mx-auto text-center font-bold mb-6">
+        <PublicViewLink
+          view="landing"
+          className="font-montserrat text-2xl block mx-auto text-center font-bold mb-6"
+        >
           Risk Sentinel
-        </Link>
+        </PublicViewLink>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Create your business account</h1>
         <p className="text-base text-muted-foreground mt-1">
           Set up your SME profile to start monitoring risks.
@@ -160,9 +167,9 @@ function RegisterPage() {
           <Alert variant="destructive" className="mt-4">
             <AlertDescription>
               An account with this email already exists. Please{" "}
-              <Link to="/login" className="font-medium underline underline-offset-2">
+              <PublicViewLink view="login" className="font-medium underline underline-offset-2">
                 sign in
-              </Link>{" "}
+              </PublicViewLink>{" "}
               instead.
             </AlertDescription>
           </Alert>
@@ -171,9 +178,12 @@ function RegisterPage() {
           <Alert variant="destructive" className="mt-4">
             <AlertDescription>
               An account with this email already exists but needs to be restored. Please use{" "}
-              <Link to="/forgot-password" className="font-medium underline underline-offset-2">
+              <PublicViewLink
+                view="forgot-password"
+                className="font-medium underline underline-offset-2"
+              >
                 Forgot password
-              </Link>{" "}
+              </PublicViewLink>{" "}
               to regain access — do not create a new account.
             </AlertDescription>
           </Alert>
@@ -266,9 +276,9 @@ function RegisterPage() {
             </Button>
             <p className="text-center text-sm text-muted-foreground mt-3">
               Already have an account?{" "}
-              <Link to="/login" className="text-primary font-medium">
+              <PublicViewLink view="login" className="text-primary font-medium">
                 Login
-              </Link>
+              </PublicViewLink>
             </p>
           </div>
         </form>

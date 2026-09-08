@@ -4,11 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useStore, riskAtDate, severityColor, type Category, type Severity } from "@/lib/risk-store";
 
-export const Route = createFileRoute("/app/history")({ component: Page });
+export const Route = createFileRoute("/app/history")({ component: HistoryPage });
 
 type Row = { date: string; category: Category; summary: string; riskScore: number; riskLevel: Severity };
 
-function Page() {
+export function HistoryPage() {
   const state = useStore((s) => s);
   const [cat, setCat] = useState<"all" | Category>("all");
   const [from, setFrom] = useState("");

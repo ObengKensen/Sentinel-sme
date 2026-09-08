@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { printReport } from "@/lib/print-report";
 import { cyberRisk, complianceRisk, financialRisk, operationalRisk, overallRisk, useStore } from "@/lib/risk-store";
 
-export const Route = createFileRoute("/app/reports")({ component: Page });
+export const Route = createFileRoute("/app/reports")({ component: ReportsPage });
 
-function Page() {
+export function ReportsPage() {
   const state = useStore((s) => s);
   const fin = financialRisk(state);
   const cyb = cyberRisk(state);

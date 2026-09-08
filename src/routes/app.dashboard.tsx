@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { AppPageLink } from "@/components/WorkspaceLink";
+import type { AppPageId } from "@/lib/app-nav";
 import {
   Wallet,
   ShieldCheck,
@@ -45,7 +47,7 @@ import {
 
 export const Route = createFileRoute("/app/dashboard")({ component: Dashboard });
 
-function Dashboard() {
+export function Dashboard() {
   const state = useStore((s) => s);
   const fin = financialRisk(state);
   const cyb = cyberRisk(state);
@@ -95,12 +97,12 @@ function Dashboard() {
   ).length;
   const recommendations = getRecommendations(state);
 
-  const quickActions = [
-    { label: "Financial data", href: "/app/financial", icon: Wallet },
-    { label: "Cyber check", href: "/app/cybersecurity", icon: ShieldCheck },
-    { label: "Compliance", href: "/app/compliance", icon: FileCheck2 },
-    { label: "Operations", href: "/app/operational", icon: Cog },
-  ] as const;
+  const quickActions: { label: string; page: AppPageId; icon: typeof Wallet }[] = [
+    { label: "Financial data", page: "financial", icon: Wallet },
+    { label: "Cyber check", page: "cybersecurity", icon: ShieldCheck },
+    { label: "Compliance", page: "compliance", icon: FileCheck2 },
+    { label: "Operations", page: "operational", icon: Cog },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -163,12 +165,12 @@ function Dashboard() {
                     <div className="font-semibold text-sm">{rec.title}</div>
                     <div className="text-sm text-muted-foreground mt-0.5">{rec.action}</div>
                   </div>
-                  <Link
-                    to={rec.href}
+                  <AppPageLink
+                    page={rec.page}
                     className="text-sm text-primary flex items-center gap-1 shrink-0"
                   >
                     Go <ArrowRight className="h-3 w-3" />
-                  </Link>
+                  </AppPageLink>
                 </div>
               ))}
             </div>
@@ -182,15 +184,15 @@ function Dashboard() {
           </div>
           <div className="grid gap-2">
             {quickActions.map((action) => (
-              <Link
-                key={action.href}
-                to={action.href}
+              <AppPageLink
+                key={action.page}
+                page={action.page}
                 className="flex items-center gap-3 rounded-lg border p-3 text-sm hover:bg-muted/50 transition-colors"
               >
                 <action.icon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-semibold">{action.label}</span>
                 <ArrowRight className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
-              </Link>
+              </AppPageLink>
             ))}
           </div>
         </Card>
@@ -311,9 +313,9 @@ function Dashboard() {
               {highActiveCount > 0 ? ` · ${highActiveCount} high severity` : ""}
             </div>
           </div>
-          <Link to="/app/alerts" className="text-sm text-primary flex items-center gap-1">
+          <AppPageLink page="alerts" className="text-sm text-primary flex items-center gap-1">
             View all <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+          </AppPageLink>
         </div>
         {recent.length === 0 ? (
           <div className="text-sm text-muted-foreground py-6 text-center">

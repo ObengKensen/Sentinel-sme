@@ -11,7 +11,7 @@ describe("AdminSidebar", () => {
   beforeEach(async () => {
     resetTestState();
     resetAuthModuleState();
-    routerState.pathname = "/admin/dashboard";
+    routerState.pathname = "/admin";
     localStorage.clear();
     await seedSuperAdmin();
     await loginUser("admin@smerisksentinel.com", "SuperAdmin2024!");
@@ -30,6 +30,6 @@ describe("AdminSidebar", () => {
     const user = userEvent.setup({ delay: null });
     renderWithProviders(<AdminSidebar />);
     await user.click(screen.getByText("Logout"));
-    expect(mockNavigate).toHaveBeenCalledWith({ to: "/login" });
+    expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
   });
 });
