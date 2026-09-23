@@ -48,7 +48,7 @@ export function AdminDashboard() {
   ];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-2xl font-semibold">Platform Overview</h2>
       </div>
