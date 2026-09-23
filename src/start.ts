@@ -40,11 +40,13 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next, reque
   });
 
   setResponseHeaders(
-    getSecurityHeaders({
-      hostname,
-      port,
-      nonce,
-    }),
+    new Headers(
+      getSecurityHeaders({
+        hostname,
+        port,
+        nonce,
+      }),
+    ),
   );
 
   return next({
